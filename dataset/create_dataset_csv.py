@@ -8,73 +8,99 @@ import time
 import pandas as pd
 from pycocotools.coco import COCO
 import os
-
-DATASET_IMAGES_CROPPED_PATH = "/projects/data/turtle-full-v2/images/Train_cropped/"
-#DATASET_IMAGES_PATH = "/projects/data/turtle-full-v2/images/Train/"
 DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
-CROPPED_TURTLE_TRAIN_CSV_PATH= "cropped_turtle_train.csv"
-CROPPED_TURTLE_VAL_CSV_PATH= "cropped_turtle_val.csv"
-CROPPED_TURTLE_TEST_CSV_PATH = "cropped_turtle_test.csv"
-CROPPED_TURTLE_POSITIVE_CSV_PATH = "all_cropped_turtle_positive.csv"
-
-
-CAPTIONS_ANNOTATIONS_COCO_PATH = "/projects/data/turtle-full-v2/annotations/captions_val2014.json"
-COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
 COCO_CSV_PATH = "COCO_all.csv"
-COCO_TRAIN_CSV_PATH = "COCO_train.csv"
-COCO_VAL_CSV_PATH = "COCO_val.csv"
-COCO_TEST_CSV_PATH = "COCO_test.csv"
+CROPPED_TURTLE_CSV_PATH = "all_cropped_turtle_positive.csv"
+COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
+CROPPED_TURTLE_POSITIVE_CSV_PATH = "all_cropped_turtle_positive.csv"
+DATASET_IMAGES_CROPPED_PATH = "/projects/data/turtle-full-v2/images/Train_cropped/"
+CAPTIONS_ANNOTATIONS_COCO_PATH = "/projects/data/turtle-full-v2/annotations/captions_val2014.json"
 
-FINAL_TRAIN_CSV_PATH = "train.csv"
-FINAL_VAL_CSV_PATH = "val.csv"
-#NEGATIVE_CSV_WITH_TRASH = "all_negative_with_trash.csv"
-#NEGATIVE_CSV_WITHOUT_TRASH = "all_negative_without_trash.csv"
-#COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
-# LLM Legge FRASI E RIFORMULA e le risalviamo
+#POSSIBILI MODIFICHE DA FARE --> A COCO METTERE LE IMMAGINI CON LE KEYWORD ATTINENTI e/o usare COCO TRAIN
 
 class Annotations:
     img_list = []
-    def __init__(self,train_size,val_size,nTrainPos,nTrainNeg,nValPos,nValNeg):
+    def __init__(self, train_size,val_size,test_size,nTrainPos,nTrainNeg,nValPos,nValNeg,nTestPos,nTestNeg):
         self.img_list = self.extract_img()
         self.captions_coco = COCO(CAPTIONS_ANNOTATIONS_COCO_PATH)        
         self.train_size = train_size
         self.val_size = val_size
+        self.test_size = test_size
         self.nTrainPos = nTrainPos
         self.nTrainNeg = nTrainNeg
         self.nValPos = nValPos
         self.nValNeg = nValNeg
-        self.total_pos = nTrainPos + nValPos
-        self.total_neg = nTrainNeg + nValNeg
-        with open("info_dataset.txt", "w") as file:
-            file.write("=== LOG DATASET ===\n\n")
+        self.nTestPos = nTestPos
+        self.nTestNeg = nTestNeg
         self.LLM = None #self.LLM = LLM()
         
         #CREATE POSITIVE TURTLE CSV
-        self.turtle_create_csv()
+        #self.turtle_create_csv()
         
         #CREATE NEGATIVE COCO CSV
         self.COCO_create_csv()
+
+        #CREATE TRAINING, VALIDATION AND TEST SET
+        self.split_csv(file1=CROPPED_TURTLE_CSV_PATH,file2=COCO_CSV_PATH)
+
+    def split_csv(self,file1, file2, output_prefix='', random_state=None):
+        """
+        Divide due file CSV in training (80%), validation (10%) e test (10%) set.
+        Args:
+            file1 (str): Percorso del primo file CSV (fornirà 8000 train, 1000 val, 1000 test)
+            file2 (str): Percorso del secondo file CSV (fornirà 16000 train, 2000 val, 2000 test)
+            output_prefix (str): Prefisso per i file di output
+            random_state (int): Seed per la riproducibilità
+        """
+        # Carica i file CSV
+        df1 = pd.read_csv(file1)
+        df2 = pd.read_csv(file2)
         
-        #SPLIT TURTLE TRAIN AND VAL TURTLE
-        self.split_csv(input_file=CROPPED_TURTLE_POSITIVE_CSV_PATH, train_output=CROPPED_TURTLE_TRAIN_CSV_PATH, val_output=CROPPED_TURTLE_VAL_CSV_PATH,test_output=CROPPED_TURTLE_TEST_CSV_PATH, num_sample=10000)
+        # Mescola i dataframe
+        df1 = df1.sample(frac=1, random_state=random_state).reset_index(drop=True)
+        df2 = df2.sample(frac=1, random_state=random_state).reset_index(drop=True)
         
-        #SPLIT COCO TRAIN AND VAL
-        self.split_csv(input_file=COCO_CSV_PATH, train_output=COCO_TRAIN_CSV_PATH, val_output=COCO_VAL_CSV_PATH,test_output=COCO_TEST_CSV_PATH, num_sample=40000)
+        # Verifica che ci siano abbastanza righe
+        if len(df1) < (self.nTrainPos + self.nValPos + self.nTestPos): 
+            raise ValueError(f"{file1} ha meno di 10000 righe (richieste: 8000 train + 1000 val + 1000 test)")
         
-        #MERGE TRAIN OF TURTLE AND COCO IN ONE TRAIN
-        self.merge_and_shuffle_csv(CROPPED_TURTLE_TRAIN_CSV_PATH, COCO_TRAIN_CSV_PATH, FINAL_TRAIN_CSV_PATH)
-        #MERGE VAL OF TURTEL AND COCO IN ONE VAL
-        self.merge_and_shuffle_csv(CROPPED_TURTLE_VAL_CSV_PATH, COCO_VAL_CSV_PATH, FINAL_VAL_CSV_PATH)
+        if len(df2) < (self.nTrainNeg + self.nValNeg + self.nTestNeg): 
+            raise ValueError(f"{file2} ha meno di 20000 righe (richieste: 16000 train + 2000 val + 2000 test)")
         
-        #self.buildNegativeCSV()
-        #self.build_training_validation_CSV()
+        # Split per il primo file (8000, 1000, 1000)
+        train1 = df1.iloc[:8000]
+        val1 = df1.iloc[8000:9000]
+        test1 = df1.iloc[9000:10000]
         
+        # Split per il secondo file (16000, 2000, 2000)
+        train2 = df2.iloc[:16000]
+        val2 = df2.iloc[16000:18000]
+        test2 = df2.iloc[18000:20000]
+        
+        # Combina i dataset
+        train = pd.concat([train1, train2], ignore_index=True)
+        val = pd.concat([val1, val2], ignore_index=True)
+        test = pd.concat([test1, test2], ignore_index=True)
+        
+        # Mescola i dataset combinati (mantenendo la proporzione ma mischiando le fonti)
+        train = train.sample(frac=1, random_state=random_state).reset_index(drop=True)
+        val = val.sample(frac=1, random_state=random_state).reset_index(drop=True)
+        test = test.sample(frac=1, random_state=random_state).reset_index(drop=True)
+        
+        # Salva i file
+        train.to_csv(f"{output_prefix}training.csv", index=False)
+        val.to_csv(f"{output_prefix}val.csv", index=False)
+        test.to_csv(f"{output_prefix}test.csv", index=False)
+        
+        print("Split completato con successo!")
+        print(f"Training set: {len(train)} righe (8000 da {file1} + 16000 da {file2})")
+        print(f"Validation set: {len(val)} righe (1000 da {file1} + 2000 da {file2})")
+        print(f"Test set: {len(test)} righe (1000 da {file1} + 2000 da {file2})")
+
+    # Esempio di utilizzo:
+    # split_csv('file1.csv', 'file2.csv', random_state=42)
+
     
-    def log_to_file(self,message, mode="a"):
-        with open("info_dataset.txt", mode) as file:
-            file.write(message + "\n")  # Aggiunge un ritorno a capo
-
-
     def extract_img(self):
         with open(DATASET_ANNOTATIONS_PATH) as file_json:
             annotations = json.load(file_json)
@@ -85,7 +111,7 @@ class Annotations:
                     self.img_list.append((item_img['file_name'], item_annotations['category_id']))
         random.shuffle(self.img_list)
         return self.img_list
-    
+
     def turtle_create_csv(self):
         with open(CROPPED_TURTLE_POSITIVE_CSV_PATH,'w', newline='') as csv_file:
             fieldnames = ['image_path', 'caption']
@@ -103,63 +129,6 @@ class Annotations:
                     counter_positive += 1
                 #if counter_positive >= self.total_pos:
                     #break
-            self.log_to_file(f"Total Positive data: {counter_positive}")
-        
-    def buildNegativeCSV(self):
-        with open("",'w', newline='') as csv_file:
-            fieldnames = ['image_path', 'caption']
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-            #counter_negative_with_trash = 0
-            counter_negative = 0
-            writer.writeheader()
-            for img_name in self.img_list:
-                if img_name[1] == 3: ## img with trash
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_negative_sentence(include_trash=True)
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence})
-                    counter_negative += 1
-                elif img_name[1] != 3 and img_name[1] !=2:
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_negative_sentence(include_trash=False)
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence})
-                    counter_negative += 1
-                if counter_negative >= self.total_neg:
-                    break
-            self.log_to_file(f"Total Negative with trash data: {counter_negative}")
-    
-    def split_csv(self, input_file, train_output, val_output, test_output, shuffle=True, train_ratio=0.8,val_ratio=0.1, num_sample=10000):
-        df = pd.read_csv(input_file)
-        if shuffle:
-            df = df.sample(frac=1, random_state=42).reset_index(drop=True)
-        df = df.iloc[:num_sample]
-
-        # Calcola i punti di split per train, validation e test
-        train_split = int(len(df) * train_ratio)
-        val_split = train_split + int(len(df) * val_ratio)  # Se val_ratio è dato
-        # Oppure, se vuoi solo train_ratio e il resto è diviso tra val e test:
-        test_split = int(len(df) * (train_ratio + val_ratio))  # Alternativa
-
-        # Divisione in train, validation e test
-        train_df = df.iloc[:train_split]
-        val_df = df.iloc[train_split:test_split]  # Se usi val_ratio e test_ratio
-        test_df = df.iloc[test_split:]  # Il resto va al test set
-
-        # Salvataggio dei CSV
-        train_df.to_csv(train_output, index=False)
-        val_df.to_csv(val_output, index=False)
-        test_df.to_csv(test_output, index=False)  # Nuovo file di test
-
-        self.log_to_file(f"Divisione completata:")
-        self.log_to_file(f"- Training set: {len(train_df)} righe ({train_ratio*100:.0f}%) salvato in {train_output}")
-        self.log_to_file(f"- Validation set: {len(val_df)} righe ({(val_ratio)*100:.0f}%) salvato in {val_output}")
-        self.log_to_file(f"- Test set: {len(test_df)} righe ({(1 - train_ratio - val_ratio)*100:.0f}%) salvato in {test_output}")
-        
     def COCO_get_caption(self, img_name):
         for idx in self.captions_coco.imgs:
             if self.captions_coco.imgs[idx]["file_name"] == img_name:
@@ -177,31 +146,15 @@ class Annotations:
             for file_name in os.listdir(COCO_DATASET_PATH):
                 writer.writerow({'image_path': COCO_DATASET_PATH+file_name, 'caption': self.COCO_get_caption(file_name)})
                 
-    def merge_and_shuffle_csv(self, file1, file2, output_file, shuffle=True):
-        # Leggi entrambi i file CSV
-        df1 = pd.read_csv(file1)
-        df2 = pd.read_csv(file2)
-    
-        # Unisci i dataframe
-        merged_df = pd.concat([df1, df2], ignore_index=True)
-    
-        # Mescola le righe se richiesto
-        if shuffle:
-            merged_df = merged_df.sample(frac=1, random_state=42).reset_index(drop=True)
-    
-        # Salva il risultato
-        merged_df.to_csv(output_file, index=False)
-    
-        self.log_to_file(f"Merge completato:")
-        self.log_to_file(f"- Righe dal primo file: {len(df1)}")
-        self.log_to_file(f"- Righe dal secondo file: {len(df2)}")
-        self.log_to_file(f"- Righe totali nel file unito: {len(merged_df)}")
-        self.log_to_file(f"- File salvato in: {output_file}")
-
-        
-dataset = Annotations(train_size=10000,val_size=1000, nTrainPos=8000,nTrainNeg=2000,nValPos=800,nValNeg=200)
-
-#dataset = Annotations(train_size=100,val_size=10, nTrainPos=80,nTrainNeg=20,nValPos=8,nValNeg=2)
 
 
+dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
+'''
+Split	Tartarughe	Distrattori (COCO)	Totale
+Train	8000	16000	24000
+Validation	1000	2000	3000
+Test	1000	2000	3000
+
+
+'''
