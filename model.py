@@ -16,6 +16,8 @@ class RetrievalModel(nn.Module):
         self.vision_encoder.eval()
         for p in self.vision_encoder.parameters():
             p.requires_grad = False
+        
+        
  
         vision_output_dim = self.vision_encoder.num_features
         # Text Encoder
@@ -35,6 +37,9 @@ class RetrievalModel(nn.Module):
             text_output_dim = self.bert.config.hidden_size
         else:
             raise ValueError("Unsupported text encoder")
+        self.text_encoder.eval()
+        for p in self.text_encoder.parameters():
+            p.requires_grad = False
         # Projection heads
         self.image_proj = nn.Linear(vision_output_dim, embed_dim)
         if text_encoder == "clip":

@@ -20,11 +20,11 @@ image_transform = T.Compose([
 ])
  
 # --- Dataset and Dataloader ---
-train_dataset = RetrievalDataset("train.csv", transform=image_transform)
+train_dataset = RetrievalDataset("./dataset/training.csv", transform=image_transform)
 train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
  
 # --- Model and Optimizer ---
-model = RetrievalModel(text_encoder="clip").cuda()
+model = RetrievalModel(text_encoder="bert").cuda()
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-4)
  
 # --- Training Loop ---
