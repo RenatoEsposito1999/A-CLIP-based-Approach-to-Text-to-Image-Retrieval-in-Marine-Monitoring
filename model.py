@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import timm
-from transformers import BertModel, BertTokenizer
+from transformers import BertModel
 import open_clip
+import numpy as np
  
 class RetrievalModel(nn.Module):
     def __init__(self, 
@@ -14,6 +15,7 @@ class RetrievalModel(nn.Module):
         self.vision_encoder = timm.create_model(vision_encoder, pretrained=True)
         self.vision_encoder.reset_classifier(0)
         self.vision_encoder.eval()
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
         for p in self.vision_encoder.parameters():
             p.requires_grad = False
         
@@ -37,15 +39,20 @@ class RetrievalModel(nn.Module):
             text_output_dim = self.bert.config.hidden_size
         else:
             raise ValueError("Unsupported text encoder")
-        self.text_encoder.eval()
-        for p in self.text_encoder.parameters():
-            p.requires_grad = False
         # Projection heads
-        self.image_proj = nn.Linear(vision_output_dim, embed_dim)
+        self.image_proj = self.build_mlp(vision_output_dim, embed_dim)
         if text_encoder == "clip":
             self.text_proj = nn.Identity()  # proiezione già fatta da CLIP
         else:
-            self.text_proj = nn.Linear(text_output_dim, embed_dim)
+            self.text_proj = self.build_mlp(text_output_dim, embed_dim)
+            
+    def build_mlp(self, input_dim, output_dim, hidden_dim=1024, dropout=0.1):
+        return nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim)
+        )
  
     def encode_image(self, x):
         with torch.no_grad():
