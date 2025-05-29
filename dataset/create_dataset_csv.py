@@ -146,8 +146,21 @@ class Annotations:
             for file_name in os.listdir(COCO_DATASET_PATH):
                 writer.writerow({'image_path': COCO_DATASET_PATH+file_name, 'caption': self.COCO_get_caption(file_name)})
                 
+def build_val_only_turtle(file1, file2, n_rows):
+        df1 = pd.read_csv(file1)
+        df1 = df1.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
 
-
+        if not os.path.exists(file2):
+            df2 = pd.DataFrame(columns=df1.columns)
+        else:
+            df2 = pd.read_csv(file2)
+        
+        rows = df1.head(n_rows)
+        
+        df2 = pd.concat([df2, rows], ignore_index=True)
+        
+        df2.to_csv(file2, index=False)
+#build_val_only_turtle(file1="all_cropped_turtle_positive.csv", file2="only_turtle_val.csv", n_rows=1000)
 dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''

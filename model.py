@@ -1,51 +1,36 @@
 import torch
 import torch.nn as nn
 import timm
-from transformers import BertModel
+from transformers import BertModel, AutoModel
 import open_clip
 import numpy as np
  
 class RetrievalModel(nn.Module):
     def __init__(self, 
-                 vision_encoder="vit_base_patch16_224",
-                 text_encoder="clip", 
+                 opts, 
                  embed_dim=512):
         super().__init__()
         # Vision Encoder
-        self.vision_encoder = timm.create_model(vision_encoder, pretrained=True)
+        self.vision_encoder = timm.create_model(opts.vision_encoder, pretrained=True)
         self.vision_encoder.reset_classifier(0)
-        self.vision_encoder.eval()
+        self.freeze_module(self.vision_encoder)
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-        for p in self.vision_encoder.parameters():
-            p.requires_grad = False
-        
-        
- 
+
         vision_output_dim = self.vision_encoder.num_features
         # Text Encoder
-        if text_encoder == "clip":
-            model, _, _ = open_clip.create_model_and_transforms('ViT-B-16', pretrained='openai')
-            self.text_encoder = model.token_embedding
-            self.text_transformer = model.transformer
-            self.positional_embedding = model.positional_embedding
-            self.ln_final = model.ln_final
-            self.text_projection = model.text_projection
-            self.text_encoder_type = "clip"
-        elif text_encoder == "bert":
-            self.bert = BertModel.from_pretrained("bert-base-uncased")
-            for p in self.bert.parameters():
-                p.requires_grad = False
-            self.text_encoder_type = "bert"
-            text_output_dim = self.bert.config.hidden_size
-        else:
-            raise ValueError("Unsupported text encoder")
+        self.bert = AutoModel.from_pretrained(opts.text_encoder)
+        self.freeze_module(self.bert)
+        text_output_dim = self.bert.config.hidden_size
         # Projection heads
         self.image_proj = self.build_mlp(vision_output_dim, embed_dim)
-        if text_encoder == "clip":
-            self.text_proj = nn.Identity()  # proiezione già fatta da CLIP
-        else:
-            self.text_proj = self.build_mlp(text_output_dim, embed_dim)
-            
+        self.text_proj = self.build_mlp(text_output_dim, embed_dim)
+    
+
+    def freeze_module(self,module):
+        module.eval()
+        for p in module.parameters():
+            p.requires_grad = False
+
     def build_mlp(self, input_dim, output_dim, hidden_dim=1024, dropout=0.1):
         return nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
@@ -60,17 +45,9 @@ class RetrievalModel(nn.Module):
         return self.image_proj(features)
  
     def encode_text(self, text_inputs):
-        if self.text_encoder_type == "clip":
-            with torch.no_grad():
-                x = self.text_encoder(text_inputs) + self.positional_embedding
-                x = self.text_transformer(x)
-                x = x[torch.arange(x.shape[0]), text_inputs.argmax(dim=-1)]
-                x = self.ln_final(x)
-                x = x @ self.text_projection
-        else:
-            with torch.no_grad():
-                outputs = self.bert(**text_inputs)
-                x = outputs.pooler_output
+        with torch.no_grad():
+            outputs = self.bert(**text_inputs)
+            x = outputs.pooler_output
         return self.text_proj(x)
  
     def forward(self, images, text_inputs):
@@ -82,3 +59,6 @@ class RetrievalModel(nn.Module):
         text_embeds = text_embeds / text_embeds.norm(dim=1, keepdim=True)
  
         return image_embeds, text_embeds
+    
+
+
