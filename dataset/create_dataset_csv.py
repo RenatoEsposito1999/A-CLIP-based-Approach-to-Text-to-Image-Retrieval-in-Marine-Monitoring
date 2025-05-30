@@ -160,8 +160,8 @@ def build_val_only_turtle(file1, file2, n_rows):
         df2 = pd.concat([df2, rows], ignore_index=True)
         
         df2.to_csv(file2, index=False)
-#build_val_only_turtle(file1="all_cropped_turtle_positive.csv", file2="only_turtle_val.csv", n_rows=1000)
-dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
+build_val_only_turtle(file1="all_cropped_turtle_positive.csv", file2="only_turtle_val.csv", n_rows=1000)
+#dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''
 Split	Tartarughe	Distrattori (COCO)	Totale

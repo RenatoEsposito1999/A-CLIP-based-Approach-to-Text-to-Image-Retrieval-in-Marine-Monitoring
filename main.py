@@ -85,7 +85,8 @@ if __name__ == "__main__":
         only_turtle_val_dataset = RetrievalDataset(opts.only_turtle_validation_path,transform_turtle=val_image_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        only_turtle_val_loader = DataLoader(only_turtle_val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
+        only_turtle_val_loader=None
+        #only_turtle_val_loader = DataLoader(only_turtle_val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         print("START TRAINING")
         # --- Model and Optimizer ---
         
