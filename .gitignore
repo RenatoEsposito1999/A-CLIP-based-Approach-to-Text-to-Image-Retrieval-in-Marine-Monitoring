@@ -69,3 +69,4 @@ best_model.pth
 gpu.err
 gpu.out
 gpu.err
+.pth
