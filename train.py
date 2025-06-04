@@ -29,6 +29,7 @@ class Train:
         self.optimizer = optimizer
         self.model = model
         self.best_val_loss = float('inf')
+        self.best_val_loss_turtle = float('inf')
         self.last_epoch = 0
         if self.opts.resume:
             #Retrive last epoch
@@ -39,8 +40,9 @@ class Train:
                 self.optimizer.load_state_dict(last_state['optimizer'])
                 self.last_epoch = last_state['epoch']
                 self.best_val_loss = last_state['best_val_loss']
+                self.best_val_loss_turtle = last_state['best_val_loss_turtle']
 
-    def train_loop(self,train_loader, val_loader=None, only_turtle_loader=None):
+    def train_loop(self,train_loader, val_loader=None):
         for epoch in tqdm(range(self.last_epoch,self.opts.n_epochs)):
             self.model.train()
             total_loss = 0
@@ -64,17 +66,14 @@ class Train:
                     'epoch': epoch+1,
                     'state_dict': copy.deepcopy(self.model.state_dict()),
                     'optimizer': self.optimizer.state_dict(),
-                    'best_val_loss': self.best_val_loss
+                    'best_val_loss': self.best_val_loss,
+                    'best_val_loss_turtle': self.best_val_loss_turtle
                     }
             torch.save(state, f"{self.opts.resume_path}checkpoint_{epoch+1}.pth")
 
             if val_loader:
-                print("START VALIDATION ON COCO AND TURTLE (MIXED) DATASET")
-                metrics = self.eval_loop(val_loader=val_loader, is_only_turtle=False)
-                if only_turtle_loader:
-                    print("START VALIDATION ON ONLY TURTLE DATASET")
-                    metrics_only_turtle = self.eval_loop(val_loader=only_turtle_loader,is_only_turtle=True)
-                    metrics = metrics | metrics_only_turtle # Merge dicts and overload same key
+                print("START VALIDATION")
+                metrics = self.eval_loop(val_loader=val_loader)
                 metrics['train_loss'] = total_loss/len(train_loader)
                 metrics['epoch'] = epoch+1
                 print(metrics)
@@ -98,17 +97,23 @@ class Train:
                     json.dump(existing_data, f, indent=4, ensure_ascii=False)
 
                 # Save best model
-                if metrics['val_loss'] < self.best_val_loss:
-                    self.best_val_loss = metrics['val_loss']
+                if metrics['COCO_TURTLE_val_loss'] < self.best_val_loss:
+                    self.best_val_loss = metrics['COCO_TURTLE_val_loss']
                     best_model_state = copy.deepcopy(self.model.state_dict())
-                    torch.save(best_model_state, self.opts.best_model_path)
-                    print(f"Best model saved at {epoch+1} with val_loss {metrics['val_loss']:.4f}")
-
-    def eval_loop(self, val_loader, is_only_turtle = False):
+                    torch.save(best_model_state, self.opts.best_model_mix_path)
+                    print(f"Best model saved at {epoch+1} with val_loss {metrics['COCO_TURTLE_val_loss']:.4f}")
+                if metrics['ONLY_TURTLE_val_loss'] < self.best_val_loss_turtle:
+                    self.best_val_loss_turtle = metrics['ONLY_TURTLE_val_loss']
+                    best_model_state = copy.deepcopy(self.model.state_dict())
+                    torch.save(best_model_state, self.opts.best_model_turtle_only_path)
+                    print(f"Best model on only turtle set saved at epoch {epoch+1} with only_turtle_val_loss {metrics['ONLY_TURTLE_val_loss']:.4f}")
+    def eval_loop(self, val_loader):
         self.model.eval()
         all_text_embeds = []
         all_image_embeds = []
         all_categories = []
+        only_turtle_val_loss = 0
+        turtle_count = 0
         with torch.no_grad():
             total_val_loss = 0
             for batch in tqdm(val_loader):
@@ -116,7 +121,6 @@ class Train:
                 text_inputs = {k: v.to(self.opts.device) for k, v in batch["captions"].items()}
                 image_embeds, text_embeds = self.model(images, text_inputs)
                 categories = batch["category_id"]
-                #val_loss = self.loss_fn(image_embeds, text_embeds, self.model.logit_scale, categories)
                 val_loss = self.loss_fn(text_embeds, image_embeds, categories ,self.model.logit_scale)
                 total_val_loss += val_loss.item()
 
@@ -124,19 +128,27 @@ class Train:
                 all_text_embeds.append(text_embeds)
                 all_categories.append(categories)
 
+                # --- Loss only on turtle
+                turtle_mask = (categories == 0)
+                if turtle_mask.any():
+                    turtle_text_embeds = text_embeds[turtle_mask]
+                    turtle_image_embeds = image_embeds[turtle_mask]
+                    turtle_labels = categories[turtle_mask]
+                    turtle_loss = self.loss_fn(turtle_text_embeds, turtle_image_embeds, turtle_labels, self.model.logit_scale)
+                    only_turtle_val_loss += turtle_loss.item()
+                    turtle_count += 1
+
             all_image_embeds = torch.cat(all_image_embeds, dim=0)
             all_text_embeds = torch.cat(all_text_embeds, dim=0)
             all_categories = torch.cat(all_categories, dim=0)
-            if is_only_turtle:
-                metrics = self.compute_metrics(all_text_embeds,all_image_embeds, all_categories, suffix = "only_turtle_")
-                metrics['only_turtle_val_loss']=total_val_loss/len(val_loader)
-            else:
-                metrics = self.compute_metrics(all_text_embeds,all_image_embeds, all_categories, suffix="COCO_TURTLE_")
-                metrics['val_loss']=total_val_loss/len(val_loader)
+            
+            metrics = self.compute_metrics(all_text_embeds,all_image_embeds, all_categories )
+            metrics['COCO_TURTLE_val_loss']=total_val_loss/len(val_loader)
+            if turtle_count > 0:
+                metrics['ONLY_TURTLE_val_loss'] = only_turtle_val_loss / turtle_count
             return metrics
-            #print(f"Validation loss: {total_val_loss/len(val_loader):.4f}\nMetrics: {metrics}")
 
-    def compute_metrics(self,text_embeds, image_embeds, labels, suffix=""):
+    '''def compute_metrics(self,text_embeds, image_embeds, labels, suffix=""):
         """
         image_embeds: [N, D] - image features
         text_embeds: [N, D] - text features
@@ -170,4 +182,48 @@ class Train:
             f"{suffix}R@5": r5,
             f"{suffix}R@10": r10,
             f"{suffix}mean_rank": mean_rank
-        }
+        }'''
+    
+    def calc_recall(self,ranks,suffix=""):
+            return {
+                f"{suffix}R@1": (ranks < 1).float().mean().item(),
+                f"{suffix}R@5": (ranks < 5).float().mean().item(),
+                f"{suffix}R@10": (ranks < 10).float().mean().item(),
+                f"{suffix}mean_rank": ranks.float().mean().item(),
+            }
+
+
+    def compute_metrics(self, text_embeds, image_embeds, labels):
+        """
+        Calcola Recall@K e Mean Rank per:
+        - Tutte le categorie
+        - Solo categoria 'turtle' (label == 0)
+        """
+        sim_matrix = text_embeds @ image_embeds.T  # [N_text, N_image]
+        device = sim_matrix.device
+
+        ranks_all = []
+        ranks_turtle = []
+
+        for i in range(sim_matrix.size(0)):
+            sim_scores = sim_matrix[i]
+            sorted_indices = torch.argsort(sim_scores, descending=True)
+
+            # Positive = immagini con stessa category_id
+            positive_indices = (labels == labels[i]).nonzero(as_tuple=True)[0]
+            found = (sorted_indices.unsqueeze(1) == positive_indices).any(dim=1)
+            rank = found.nonzero(as_tuple=True)[0][0].item()
+            ranks_all.append(rank)
+
+            # Se la category_id è 'turtle' (0), salva anche nel gruppo dedicato
+            if labels[i].item() == 0:
+                ranks_turtle.append(rank)
+
+        ranks_all = torch.tensor(ranks_all, device=device)
+        ranks_turtle = torch.tensor(ranks_turtle, device=device) if ranks_turtle else torch.tensor([float("inf")], device=device)
+
+        metrics = self.calc_recall(ranks_all,suffix = "COCO_TURTLE_")
+        turtle_metrics = self.calc_recall(ranks_turtle,suffix="TURTLE_ONLY_")
+        #turtle_metrics = {f"{suffix}turtle_{k}": v for k, v in turtle_metrics.items()}
+        metrics.update(turtle_metrics)
+        return metrics

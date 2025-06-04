@@ -86,16 +86,13 @@ if __name__ == "__main__":
         train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=val_image_transform)
-        only_turtle_val_dataset = RetrievalDataset(opts.only_turtle_validation_path,transform_turtle=val_image_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        only_turtle_val_loader=None
-        only_turtle_val_loader = DataLoader(only_turtle_val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         print("START TRAINING")
         # --- Model and Optimizer ---
         #trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
         trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer, opts=opts)
-        trainer.train_loop(train_loader=train_loader,val_loader=val_loader,only_turtle_loader=only_turtle_val_loader)
+        trainer.train_loop(train_loader=train_loader,val_loader=val_loader)
     elif opts.test:
         print("TO DO TEST")
     
