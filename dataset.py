@@ -8,7 +8,7 @@ import json
         
 class RetrievalDataset(Dataset):
     def __init__(self, csv_path, transform_turtle=None, transform_coco= None, val_transform=None):
-        self.df = pd.read_csv(csv_path,nrows=100)
+        self.df = pd.read_csv(csv_path)
         #self.transform = transform if transform else T.ToTensor()
         self.transform_turtle = transform_turtle
         self.transform_coco = transform_coco
@@ -21,7 +21,6 @@ class RetrievalDataset(Dataset):
         return len(self.df)
     
     def __getitem__(self, idx):
-        turtle = None
         row = self.df.iloc[idx]
         image = Image.open(row['image_path']).convert('RGB')
         caption = row['caption']

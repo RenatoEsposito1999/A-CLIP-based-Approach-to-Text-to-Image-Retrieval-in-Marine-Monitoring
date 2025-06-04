@@ -4,7 +4,7 @@ import torchvision.transforms as T
 from transformers import AutoTokenizer
 from dataset import RetrievalDataset, collate_fn
 from model import RetrievalModel
-from loss import contrastive_loss, supcon_loss
+from loss import supcon_loss
 from opts import parse_opts
 from train import Train
 import os
