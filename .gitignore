@@ -69,4 +69,5 @@ best_model.pth
 gpu.err
 gpu.out
 gpu.err
-.pth
+best_model_mix.pth
+best_model_only_turtle.pth

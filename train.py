@@ -210,7 +210,7 @@ class Train:
             sorted_indices = torch.argsort(sim_scores, descending=True)
 
             # Positive = immagini con stessa category_id
-            positive_indices = (labels == labels[i]).nonzero(as_tuple=True)[0]
+            positive_indices = (labels == labels[i]).nonzero(as_tuple=True)[0].to(device)
             found = (sorted_indices.unsqueeze(1) == positive_indices).any(dim=1)
             rank = found.nonzero(as_tuple=True)[0][0].item()
             ranks_all.append(rank)
