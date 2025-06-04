@@ -9,7 +9,10 @@ turtle_variants = [
     "a sea turtle", "a green turtle", "a marine turtle", "a solitary turtle", "a lone turtle",
     "a turtle", "an ocean turtle", "an aquatic turtle", "a juvenile sea turtle", "a swimming turtle"
 ]
-
+dolphin_variants = [
+    "a dolphin", "a marine dolphin", "a playful dolphin", "a solitary dolphin",
+    "an ocean dolphin", "an aquatic dolphin", "a juvenile dolphin", "a swimming dolphin", "a spotted dolphin"
+]
 satellite_variants = [
     "satellite image", "aerial view", "drone-like view"
 ]
@@ -40,6 +43,7 @@ ocean_contexts_with_trash = [
     "A garbage in the ocean", "A garbage in the sea", "A debris in the ocean", "A plastic waste in the sea", "A marine litter"
 ]
 
+
 def shuffle(dynamic_random):
     dynamic_random.shuffle(ocean_contexts_with_trash)
     dynamic_random.shuffle(ocean_contexts_clean)
@@ -49,37 +53,32 @@ def shuffle(dynamic_random):
     dynamic_random.shuffle(turtle_variants)
     dynamic_random.shuffle(image_or_photo)
 
+def generate_dolphine_sentence():
+    dynamic_random = random.Random(time.time())
+    shuffle(dynamic_random)
+    dolphine = dynamic_random.choice(dolphin_variants)
+    context = dynamic_random.choice(ocean_contexts)
+    action = dynamic_random.choice(actions)
+    return f"{dolphine} {action} {context}."
+
 
 def generate_positive_sentence():
     dynamic_random = random.Random(time.time())
     shuffle(dynamic_random)
-    intro = dynamic_random.choice(image_or_photo)
     turtle = dynamic_random.choice(turtle_variants)
-    include_satellite = dynamic_random.random() < 0.3  # 30% of the time we include the top view
-    satellite = dynamic_random.choice(satellite_variants) if include_satellite else ""
     context = dynamic_random.choice(ocean_contexts)
     action = dynamic_random.choice(actions)
     return f"{turtle} {action} {context}."
-    if satellite:
-        return f"{intro} {turtle} {action} {context} in a {satellite}."
-    else:
-        return f"{intro} {turtle} {action} {context}."
-
 
 
 def generate_negative_sentence(include_trash=False):
     dynamic_random = random.Random(time.time())
     shuffle(dynamic_random)
-    include_satellite = dynamic_random.random() < 0.3  # 30% of the time we include the top view
-    satellite = dynamic_random.choice(satellite_variants) if include_satellite else ""
     if include_trash:
         context = dynamic_random.choice(ocean_contexts_with_trash)
     else:
         context = dynamic_random.choice(ocean_contexts_clean)
     return f"{context}"
-    if satellite:
-        return f"{context} in {satellite}."
-    else:
-        return f"{context}."
+
     
 

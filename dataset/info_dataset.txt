@@ -1,21 +1,3 @@
-=== LOG DATASET ===
-
-Total Positive data: 18982
-Divisione completata:
-- Training set: 8000 righe (80%) salvato in cropped_turtle_train.csv
-- Validation set: 1000 righe (10%) salvato in cropped_turtle_val.csv
-- Test set: 1000 righe (10%) salvato in cropped_turtle_test.csv
-Divisione completata:
-- Training set: 32000 righe (80%) salvato in COCO_train.csv
-- Validation set: 4000 righe (10%) salvato in COCO_val.csv
-- Test set: 4000 righe (10%) salvato in COCO_test.csv
-Merge completato:
-- Righe dal primo file: 8000
-- Righe dal secondo file: 32000
-- Righe totali nel file unito: 40000
-- File salvato in: train.csv
-Merge completato:
-- Righe dal primo file: 1000
-- Righe dal secondo file: 4000
-- Righe totali nel file unito: 5000
-- File salvato in: val.csv
+Training set: 24000 righe (8000 da cropped_marine_dataset.csv + 16000 da COCO_with_category.csv)
+Validation set: 3000 righe (1000 da cropped_marine_dataset.csv + 2000 da COCO_with_category.csv)
+Test set: 3000 righe (1000 da cropped_marine_dataset.csv + 2000 da COCO_with_category.csv)

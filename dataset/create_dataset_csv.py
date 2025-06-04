@@ -1,7 +1,7 @@
 import json
 import random
 import csv
-from create_caption import generate_negative_sentence, generate_positive_sentence
+from create_caption import generate_negative_sentence, generate_positive_sentence, generate_dolphine_sentence
 import time
 #from COCO_filter import get_caption
 #from custom_utils.llm import LLM
@@ -9,20 +9,23 @@ import pandas as pd
 from pycocotools.coco import COCO
 import os
 DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
-COCO_CSV_PATH = "COCO_all.csv"
+COCO_CSV_PATH = "COCO_with_category.csv"
 CROPPED_TURTLE_CSV_PATH = "all_cropped_turtle_positive.csv"
 COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
-CROPPED_TURTLE_POSITIVE_CSV_PATH = "all_cropped_turtle_positive.csv"
+CROPPED_TURTLE_POSITIVE_CSV_PATH = "cropped_marine_dataset.csv"
 DATASET_IMAGES_CROPPED_PATH = "/projects/data/turtle-full-v2/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/projects/data/turtle-full-v2/annotations/captions_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/projects/data/turtle-full-v2/annotations/instances_val2014.json"
 
 #POSSIBILI MODIFICHE DA FARE --> A COCO METTERE LE IMMAGINI CON LE KEYWORD ATTINENTI e/o usare COCO TRAIN
 
 class Annotations:
     img_list = []
+    ID = 0
     def __init__(self, train_size,val_size,test_size,nTrainPos,nTrainNeg,nValPos,nValNeg,nTestPos,nTestNeg):
         self.img_list = self.extract_img()
         self.captions_coco = COCO(CAPTIONS_ANNOTATIONS_COCO_PATH)        
+        self.instances_coco = COCO(COCO_ISTANCES_VAL_PATH)    
         self.train_size = train_size
         self.val_size = val_size
         self.test_size = test_size
@@ -32,16 +35,21 @@ class Annotations:
         self.nValNeg = nValNeg
         self.nTestPos = nTestPos
         self.nTestNeg = nTestNeg
+        self.category = {}
         self.LLM = None #self.LLM = LLM()
         
         #CREATE POSITIVE TURTLE CSV
-        #self.turtle_create_csv()
+        self.turtle_create_csv()
         
         #CREATE NEGATIVE COCO CSV
         self.COCO_create_csv()
-
+        self.build_category_json()
         #CREATE TRAINING, VALIDATION AND TEST SET
-        self.split_csv(file1=CROPPED_TURTLE_CSV_PATH,file2=COCO_CSV_PATH)
+        self.split_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH,file2=COCO_CSV_PATH)
+
+    def build_category_json(self):
+        with open("category_info.json", "w") as file_json:
+            json.dump(self.category,file_json, indent=2)
 
     def split_csv(self,file1, file2, output_prefix='', random_state=None):
         """
@@ -114,37 +122,82 @@ class Annotations:
 
     def turtle_create_csv(self):
         with open(CROPPED_TURTLE_POSITIVE_CSV_PATH,'w', newline='') as csv_file:
-            fieldnames = ['image_path', 'caption']
+            fieldnames = ['image_path', 'caption','category']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-            counter_positive = 0
+            #counter_negative_with_trash = 0
             writer.writeheader()
             for img_name in self.img_list:
+                if img_name[1] == 1: #img with dolphine
+                    dynamic_random = random.Random(time.time())
+                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                    sentence = generate_dolphine_sentence()
+                    if not mantain_templating and self.LLM:
+                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'dolphin'})
+                    self.store_category_info("dolphin")
                 if img_name[1] == 2: #img with turt == 2
                     dynamic_random = random.Random(time.time())
                     mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
                     sentence = generate_positive_sentence()
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence})
-                    counter_positive += 1
-                #if counter_positive >= self.total_pos:
-                    #break
-    def COCO_get_caption(self, img_name):
+                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'turtle'})
+                    self.store_category_info("turtle")
+                if img_name[1] == 3: ## img with trash
+                    dynamic_random = random.Random(time.time())
+                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                    sentence = generate_negative_sentence(include_trash=True)
+                    if not mantain_templating and self.LLM:
+                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'debris'})
+                    self.store_category_info("debris")
+                elif img_name[1] == 4: #other area sea view
+                    dynamic_random = random.Random(time.time())
+                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                    sentence = generate_negative_sentence(include_trash=False)
+                    if not mantain_templating and self.LLM:
+                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'sea'})
+                    self.store_category_info("sea")
+
+    def store_category_info(self,category):
+        if category in self.category:
+            count = self.category[category][1]
+            self.category[category][1] = count+1
+        else:
+            self.category[category] = [self.ID,1]
+            self.ID +=1
+
+    def COCO_get_caption_and_category(self, img_name):
+        #Trova l'immagine corrispondente
         for idx in self.captions_coco.imgs:
             if self.captions_coco.imgs[idx]["file_name"] == img_name:
                 img_id = self.captions_coco.imgs[idx]["id"]
                 ann_ids = self.captions_coco.getAnnIds(imgIds=img_id)
                 captions = self.captions_coco.loadAnns(ann_ids)
-                return captions[random.randint(0,len(captions)-1)]['caption']
-        
+                caption = captions[random.randint(0,len(captions)-1)]['caption']
+                obj_ann_ids = self.instances_coco.getAnnIds(imgIds=img_id)
+                obj_anns = self.instances_coco.loadAnns(obj_ann_ids)
+                category_ids = list(set([ann['category_id'] for ann in obj_anns]))
+                if not category_ids:
+                    supercategory = "empty"
+                else:
+                    supercategories = list(set([self.instances_coco.cats[cat_id]['supercategory']
+                                            for cat_id in category_ids]))
+                    supercategory = random.choice(supercategories)
+                return caption, supercategory
         
     def COCO_create_csv(self):        
+        #with open(COCO_CSV_PATH,'w', newline='') as csv_file:
         with open(COCO_CSV_PATH,'w', newline='') as csv_file:
-            fieldnames = ['image_path', 'caption']
+            fieldnames = ['image_path', 'caption','category']
             writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
             writer.writeheader()
             for file_name in os.listdir(COCO_DATASET_PATH):
-                writer.writerow({'image_path': COCO_DATASET_PATH+file_name, 'caption': self.COCO_get_caption(file_name)})
+                caption, category = self.COCO_get_caption_and_category(file_name)
+                if not category == "empty":
+                    writer.writerow({'image_path': COCO_DATASET_PATH+file_name, 'caption': caption, 'category': category})
+                    self.store_category_info(category)
                 
 def build_val_only_turtle(file1, file2, n_rows):
         df1 = pd.read_csv(file1)
@@ -160,14 +213,14 @@ def build_val_only_turtle(file1, file2, n_rows):
         df2 = pd.concat([df2, rows], ignore_index=True)
         
         df2.to_csv(file2, index=False)
-build_val_only_turtle(file1="all_cropped_turtle_positive.csv", file2="only_turtle_val.csv", n_rows=1000)
-#dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
+
+        
+#build_val_only_turtle(file1="cropped_marine_dataset.csv", file2="only_turtle_val.csv", n_rows=5000)
+dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''
 Split	Tartarughe	Distrattori (COCO)	Totale
 Train	8000	16000	24000
 Validation	1000	2000	3000
 Test	1000	2000	3000
-
-
 '''
