@@ -52,9 +52,9 @@ class Train:
                 images = batch["images"].to(self.opts.device)
                 text_inputs = {k: v.to(self.opts.device) for k, v in batch["captions"].items()}
                 categories = batch["category_id"] #for multiclass contrastive
-                image_embeds, text_embeds = self.model(images, text_inputs)
+                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs)
                 #loss = self.loss_fn(image_embeds, text_embeds, self.model.logit_scale, turtle)
-                loss = self.loss_fn(text_embeds,image_embeds,categories, self.model.logit_scale)
+                loss = self.loss_fn(text_embeds,image_embeds,categories, logit_scale)
 
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -123,9 +123,9 @@ class Train:
             for batch in tqdm(val_loader):
                 images = batch["images"].to(self.opts.device)
                 text_inputs = {k: v.to(self.opts.device) for k, v in batch["captions"].items()}
-                image_embeds, text_embeds = self.model(images, text_inputs)
+                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs)
                 categories = batch["category_id"]
-                val_loss = self.loss_fn(text_embeds, image_embeds, categories ,self.model.logit_scale)
+                val_loss = self.loss_fn(text_embeds, image_embeds, categories ,logit_scale)
                 total_val_loss += val_loss.item()
 
                 all_image_embeds.append(image_embeds)
@@ -138,7 +138,7 @@ class Train:
                     turtle_text_embeds = text_embeds[turtle_mask]
                     turtle_image_embeds = image_embeds[turtle_mask]
                     turtle_labels = categories[turtle_mask]
-                    turtle_loss = self.loss_fn(turtle_text_embeds, turtle_image_embeds, turtle_labels, self.model.logit_scale)
+                    turtle_loss = self.loss_fn(turtle_text_embeds, turtle_image_embeds, turtle_labels, logit_scale)
                     only_turtle_val_loss += turtle_loss.item()
                     turtle_count += 1
 

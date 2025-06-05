@@ -22,4 +22,4 @@ export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
 # Add the commands needed to perform GPU processing
-python main.py 
+python main.py --learning_rate=1e-4

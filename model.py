@@ -53,12 +53,12 @@ class RetrievalModel(nn.Module):
     def forward(self, images, text_inputs):
         image_embeds = self.encode_image(images)  # (B, D)
         text_embeds = self.encode_text(text_inputs)  # (B, D)
- 
+        logit_scale = torch.clamp(self.logit_scale, max=100)  # Max=100 è un valore sicuro
         # normalize
         image_embeds = image_embeds / image_embeds.norm(dim=1, keepdim=True)
         text_embeds = text_embeds / text_embeds.norm(dim=1, keepdim=True)
  
-        return image_embeds, text_embeds
+        return image_embeds, text_embeds, logit_scale
     
 
 
