@@ -92,11 +92,13 @@ if __name__ == "__main__":
     # Model and optimizer
     model = RetrievalModel(opts=opts).to(opts.device)
     print_trainable_parameters(model)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
+    trainable_params = [p for p in model.parameters() if p.requires_grad]  
+    optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)  
+    #optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_coco_transform, transform_coco = train_coco_transform)
+        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))

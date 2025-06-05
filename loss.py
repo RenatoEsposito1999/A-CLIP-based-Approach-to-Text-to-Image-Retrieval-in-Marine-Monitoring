@@ -10,7 +10,7 @@ import torch.nn as nn
     return loss_t2i
     #return (loss_i2t + loss_t2i) / 2'''
 
-def supcon_loss(anchor, positives, labels, temperature=0.07):
+def supcon_loss(anchor, positives, labels, temperature):
     """
     anchor: Tensor [N, D] <- Text embeds
     positives: Tensor [N, D] <- Img embeds
@@ -20,8 +20,13 @@ def supcon_loss(anchor, positives, labels, temperature=0.07):
     labels = labels.to(device)
     temperature = temperature.exp()
     # Calcola similarità
-    sim = temperature * torch.matmul(anchor,positives.T)
-    #sim = torch.matmul(anchor, positives.T) / temperature  # [N, N]
+    #sim = torch.matmul(anchor,positives.T) / temperature
+
+
+    anchor = anchor / anchor.norm(dim=1, keepdim=True)
+    positives = positives / positives.norm(dim=1, keepdim=True)
+
+    sim = temperature * torch.matmul(anchor, positives.T)  # [N, N]
 
     # Mask dei positivi (stessa label ma non self)
     

@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import timm
-from transformers import BertModel, AutoModel
-import open_clip
 import numpy as np
+from transformers import AutoModel
+from lora import apply_lora_to_bert, apply_lora_to_vit
+
  
 class RetrievalModel(nn.Module):
     def __init__(self, 
@@ -13,17 +14,21 @@ class RetrievalModel(nn.Module):
         # Vision Encoder
         self.vision_encoder = timm.create_model(opts.vision_encoder, pretrained=True)
         self.vision_encoder.reset_classifier(0)
-        self.freeze_module(self.vision_encoder)
+        #self.freeze_module(self.vision_encoder)
+        self.vision_encoder = apply_lora_to_vit(self.vision_encoder)
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
 
         vision_output_dim = self.vision_encoder.num_features
         # Text Encoder
         self.bert = AutoModel.from_pretrained(opts.text_encoder)
-        self.freeze_module(self.bert)
+        #self.freeze_module(self.bert)
+        self.bert = apply_lora_to_bert(self.bert)
+
         text_output_dim = self.bert.config.hidden_size
         # Projection heads
         self.image_proj = self.build_mlp(vision_output_dim, embed_dim)
         self.text_proj = self.build_mlp(text_output_dim, embed_dim)
+        
     
 
     def freeze_module(self,module):
