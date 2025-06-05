@@ -18,7 +18,7 @@ def supcon_loss(anchor, positives, labels, temperature=0.07):
     """
     device = anchor.device
     labels = labels.to(device)
-
+    temperature = temperature.exp()
     # Calcola similarità
     sim = temperature * torch.matmul(anchor,positives.T)
     #sim = torch.matmul(anchor, positives.T) / temperature  # [N, N]

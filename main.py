@@ -96,9 +96,9 @@ if __name__ == "__main__":
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_coco_transform)
+        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_coco_transform, transform_coco = train_coco_transform)
         
-        val_dataset = RetrievalDataset(opts.validation_path,val_transform=val_image_transform)
+        val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
