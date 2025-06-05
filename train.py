@@ -23,10 +23,11 @@ def find_highest_checkpoint(resume_path):
 
 
 class Train:
-    def __init__(self,model,loss_fn, optimizer, opts):
+    def __init__(self,model,loss_fn, optimizer, scheduler, opts):
         self.opts = opts
         self.loss_fn = loss_fn
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.model = model
         self.best_val_loss = float('inf')
         self.best_val_loss_turtle = float('inf')
@@ -38,6 +39,7 @@ class Train:
                 last_state = torch.load(checkpoint)
                 self.model.load_state_dict(last_state['state_dict'])
                 self.optimizer.load_state_dict(last_state['optimizer'])
+                self.scheduler.load_state_dict(last_state['scheduler'])
                 self.last_epoch = last_state['epoch']
                 self.best_val_loss = last_state['best_val_loss']
                 self.best_val_loss_turtle = last_state['best_val_loss_turtle']
@@ -57,6 +59,7 @@ class Train:
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
+                self.scheduler.step()
         
                 total_loss += loss.item()
         
@@ -66,6 +69,7 @@ class Train:
                     'epoch': epoch+1,
                     'state_dict': copy.deepcopy(self.model.state_dict()),
                     'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict(),
                     'best_val_loss': self.best_val_loss,
                     'best_val_loss_turtle': self.best_val_loss_turtle
                     }

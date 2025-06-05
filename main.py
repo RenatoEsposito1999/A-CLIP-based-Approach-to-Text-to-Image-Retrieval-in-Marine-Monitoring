@@ -2,6 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 from transformers import AutoTokenizer
+from transformers import get_cosine_schedule_with_warmup
 from dataset import RetrievalDataset, collate_fn
 from model import RetrievalModel
 from loss import supcon_loss
@@ -15,7 +16,19 @@ def print_trainable_parameters(model):
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
     #return trainable_params, total_params
-
+    
+def set_scheduler(optimizer, tot_num_epochs, steps_per_epoch):
+    warmup_ratio = 0.1
+    total_training_steps = tot_num_epochs * steps_per_epoch
+    num_warmup_steps = int(warmup_ratio*total_training_steps)
+    scheduler = get_cosine_schedule_with_warmup(
+        optimizer,
+        num_warmup_steps=num_warmup_steps,
+        num_training_steps=total_training_steps
+    )
+    return scheduler
+    
+    
 if __name__ == "__main__":
     opts = parse_opts()
 
@@ -88,10 +101,11 @@ if __name__ == "__main__":
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=val_image_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
+        scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
         print("START TRAINING")
         # --- Model and Optimizer ---
         #trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
-        trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer, opts=opts)
+        trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer,scheduler = scheduler, opts=opts)
         trainer.train_loop(train_loader=train_loader,val_loader=val_loader)
     elif opts.test:
         print("TO DO TEST")

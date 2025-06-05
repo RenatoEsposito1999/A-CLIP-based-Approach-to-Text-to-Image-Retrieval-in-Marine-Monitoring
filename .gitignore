@@ -72,3 +72,5 @@ gpu.err
 best_model_mix.pth
 best_model_only_turtle.pth
 __pycache__
+metrics*
+checkpoint*
