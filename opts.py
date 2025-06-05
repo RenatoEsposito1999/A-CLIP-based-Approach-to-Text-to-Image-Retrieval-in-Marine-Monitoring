@@ -8,7 +8,7 @@ import argparse
 
 def parse_opts():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--n_epochs', default=100, type=int, help='Number of total epochs to run')
+    parser.add_argument('--n_epochs', default=500, type=int, help='Number of total epochs to run')
     parser.add_argument('--learning_rate', default=5e-5, type=float, help='Initial learning rate') #1e-4
     parser.add_argument('--weight_decay', default=1e-6, type=float, help='Weight Decay')#1e-4
     parser.add_argument('--batch_size', default=512, type=int, help='Batch Size')#256

@@ -36,8 +36,8 @@ def contrastive_loss(image_embeds, text_embeds, logit_scale, turtle):
     loss_i2t = - (positive_mask * sim_i2t).sum() / positive_mask.sum()'''
 
     sim_t2i = torch.nn.functional.log_softmax(logits.T, dim=1)
-    loss_t2i = - (positive_mask.T * sim_t2i).sum() / positive_mask.sum()
-    
+    print(sim_t2i)
+    loss_t2i = - (positive_mask.T * sim_t2i).sum() / positive_mask.T.sum()
     return loss_t2i
 
     #return (loss_i2t + loss_t2i) / 2

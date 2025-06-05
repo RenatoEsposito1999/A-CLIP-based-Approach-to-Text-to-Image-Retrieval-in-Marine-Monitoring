@@ -2,7 +2,8 @@
 #SBATCH --job-name=TI-RET
 #SBATCH --output=gpu.out 
 #SBATCH --error=gpu.err  
-#SBATCH --time=06:00:00  
+#SBATCH --time=06:00:00
+#SBATCH --nodelist=gnode04  
 #SBATCH --nodes=1        
 #SBATCH --partition=xgpu
 #SBATCH --ntasks=1       
@@ -15,4 +16,4 @@ module load cuda/10.1
 
 
 # Add the commands needed to perform GPU processing
-python main.py 
+python main.py --resume==True

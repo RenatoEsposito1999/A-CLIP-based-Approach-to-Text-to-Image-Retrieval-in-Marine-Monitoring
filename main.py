@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 std=(0.26862954, 0.26130258, 0.27577711))
 ])
     
-    '''    train_image_transform = T.Compose([
+    train_image_transform = T.Compose([
         T.Resize((224, 224)),
         T.ToTensor(),
         T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
@@ -71,7 +71,7 @@ if __name__ == "__main__":
         T.ToTensor(),
         T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
     ])
-    '''
+    
 
     # Model and optimizer
     model = RetrievalModel(opts=opts).to(opts.device)
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_coco_transform)
+        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_image_transform, transform_coco = train_coco_transform)
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=val_image_transform)
         only_turtle_val_dataset = RetrievalDataset(opts.only_turtle_validation_path,transform_turtle=val_image_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
