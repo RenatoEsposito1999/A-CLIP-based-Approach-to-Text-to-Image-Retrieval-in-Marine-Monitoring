@@ -18,7 +18,9 @@ def supcon_loss(anchor, positives, labels, temperature):
     """
     device = anchor.device
     labels = labels.to(device)
-    temperature = temperature.exp()
+    #temperature = temperature.exp()
+    temperature = torch.clamp(temperature.exp(), max=100)  # <-- Gradient-friendly
+
     # Calcola similarità
     #sim = torch.matmul(anchor,positives.T) / temperature
 
@@ -38,5 +40,10 @@ def supcon_loss(anchor, positives, labels, temperature):
 
     # Final loss
     loss = -mean_log_prob_pos.mean()
+
+    sim = torch.matmul(anchor, positives.T)
+    pos_scores = sim[torch.arange(len(labels)), torch.arange(len(labels))]
+    print("Mean positive similarity:", pos_scores.mean().item())
+    
     return loss
 

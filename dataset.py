@@ -8,7 +8,7 @@ import json
         
 class RetrievalDataset(Dataset):
     def __init__(self, csv_path, transform_turtle=None, transform_coco= None, val_transform=None):
-        self.df = pd.read_csv(csv_path)
+        self.df = pd.read_csv(csv_path, nrows=100)
         #self.transform = transform if transform else T.ToTensor()
         self.transform_turtle = transform_turtle
         self.transform_coco = transform_coco

@@ -36,6 +36,7 @@ class Train:
             #Retrive last epoch
             checkpoint = find_highest_checkpoint(opts.resume_path)
             if checkpoint:
+                print(checkpoint)
                 last_state = torch.load(checkpoint)
                 self.model.load_state_dict(last_state['state_dict'])
                 self.optimizer.load_state_dict(last_state['optimizer'])
@@ -58,6 +59,7 @@ class Train:
 
                 self.optimizer.zero_grad()
                 loss.backward()
+                
                 self.optimizer.step()
                 self.scheduler.step()
         
@@ -67,7 +69,7 @@ class Train:
             # Saving checkpoint
             state = {
                     'epoch': epoch+1,
-                    'state_dict': copy.deepcopy(self.model.state_dict()),
+                    'state_dict': self.model.state_dict(),
                     'optimizer': self.optimizer.state_dict(),
                     'scheduler': self.scheduler.state_dict(),
                     'best_val_loss': self.best_val_loss,
@@ -103,12 +105,12 @@ class Train:
                 # Save best model
                 if metrics['COCO_TURTLE_val_loss'] < self.best_val_loss:
                     self.best_val_loss = metrics['COCO_TURTLE_val_loss']
-                    best_model_state = copy.deepcopy(self.model.state_dict())
+                    best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_mix_path)
                     print(f"Best model saved at {epoch+1} with val_loss {metrics['COCO_TURTLE_val_loss']:.4f}")
                 if metrics['ONLY_TURTLE_val_loss'] < self.best_val_loss_turtle:
                     self.best_val_loss_turtle = metrics['ONLY_TURTLE_val_loss']
-                    best_model_state = copy.deepcopy(self.model.state_dict())
+                    best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_turtle_only_path)
                     print(f"Best model on only turtle set saved at epoch {epoch+1} with only_turtle_val_loss {metrics['ONLY_TURTLE_val_loss']:.4f}")
     def eval_loop(self, val_loader):

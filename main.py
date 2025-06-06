@@ -92,7 +92,8 @@ if __name__ == "__main__":
     # Model and optimizer
     model = RetrievalModel(opts=opts).to(opts.device)
     print_trainable_parameters(model)
-    trainable_params = [p for p in model.parameters() if p.requires_grad]  
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    print("Parametri ottimizzati:")
     optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)  
     #optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
     

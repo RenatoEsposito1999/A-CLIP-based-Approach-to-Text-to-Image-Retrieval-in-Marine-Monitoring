@@ -17,7 +17,7 @@ class RetrievalModel(nn.Module):
         #self.freeze_module(self.vision_encoder)
         self.vision_encoder = apply_lora_to_vit(self.vision_encoder)
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
-
+        
         vision_output_dim = self.vision_encoder.num_features
         # Text Encoder
         self.bert = AutoModel.from_pretrained(opts.text_encoder)
@@ -37,12 +37,24 @@ class RetrievalModel(nn.Module):
             p.requires_grad = False
 
     def build_mlp(self, input_dim, output_dim, hidden_dim=1024, dropout=0.1):
-        return nn.Sequential(
+        '''return nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim, output_dim)
+        )'''
+        return nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, output_dim)
         )
+    
  
     def encode_image(self, x):
         with torch.no_grad():
@@ -58,12 +70,11 @@ class RetrievalModel(nn.Module):
     def forward(self, images, text_inputs):
         image_embeds = self.encode_image(images)  # (B, D)
         text_embeds = self.encode_text(text_inputs)  # (B, D)
-        logit_scale = torch.clamp(self.logit_scale, max=100)  # Max=100 è un valore sicuro
         # normalize
         image_embeds = image_embeds / image_embeds.norm(dim=1, keepdim=True)
         text_embeds = text_embeds / text_embeds.norm(dim=1, keepdim=True)
  
-        return image_embeds, text_embeds, logit_scale
+        return image_embeds, text_embeds, self.logit_scale
     
 
 
