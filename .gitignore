@@ -74,3 +74,5 @@ best_model_only_turtle.pth
 __pycache__
 metrics*
 checkpoint*
+best_model_mix*
+best_model_only_turtle*

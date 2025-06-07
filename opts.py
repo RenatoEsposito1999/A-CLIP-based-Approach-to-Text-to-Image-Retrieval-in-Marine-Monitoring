@@ -11,7 +11,7 @@ def parse_opts():
     parser.add_argument('--n_epochs', default=100, type=int, help='Number of total epochs to run')
     parser.add_argument('--learning_rate', default=5e-5, type=float, help='Initial learning rate') #1e-4
     parser.add_argument('--weight_decay', default=1e-6, type=float, help='Weight Decay')#1e-4
-    parser.add_argument('--batch_size', default=128, type=int, help='Batch Size')#256
+    parser.add_argument('--batch_size', default=256, type=int, help='Batch Size')#256
     parser.add_argument('--dataset_path', default="./dataset/training.csv", type=str, help='path to csv dataset') 
     parser.add_argument('--validation_path', default="./dataset/val.csv", type=str, help='path to csv dataset')
     parser.add_argument('--only_turtle_validation_path', default="./dataset/only_turtle_val.csv", type=str, help='path to csv dataset with onlu turtle')            
@@ -26,5 +26,6 @@ def parse_opts():
     parser.add_argument('--resume', default=False, help='If true, model start training from a checkpoint')
     parser.add_argument('--text_encoder', default="bert-base-uncased", help='Name of the text encoder')
     parser.add_argument('--vision_encoder', default="vit_base_patch16_224", help='Name of the ViT')
+    parser.add_argument('--lora', default=False, help='If apply lora or not')
     args = parser.parse_args()
     return args

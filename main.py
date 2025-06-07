@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoProcessor
 from transformers import get_cosine_schedule_with_warmup
 from dataset import RetrievalDataset, collate_fn
 from model import RetrievalModel
@@ -10,6 +10,9 @@ from opts import parse_opts
 from train import Train
 import os
 import shutil
+
+'''T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
+                std=(0.26862954, 0.26130258, 0.27577711))'''
 
 def print_trainable_parameters(model):    
     total_params = sum(p.numel() for p in model.parameters())    
@@ -50,31 +53,21 @@ if __name__ == "__main__":
 
     # --- Tokenizer ---
     #clip_tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch16")
-    tokenizer = AutoTokenizer.from_pretrained(opts.text_encoder)
+    processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
     
     # --- Transforms ---
     # N.B Both transforms are equal, but in future we could apply arg. 
     train_coco_transform = T.Compose([
-    T.Resize((224, 224)),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
 ])
     train_turtle_transform = T.Compose([
-    T.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+    T.RandomResizedCrop(224,scale=(0.8, 1.0), ratio=(0.9, 1.1)),
     T.RandomHorizontalFlip(p=0.5),
     T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.05),
     T.RandomRotation(degrees=10),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
+ 
+    
 ])
-    val_image_transform = T.Compose([
-    T.Resize((224, 224)),
-    T.CenterCrop(224),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
+    val_image_transform = T.Compose([ 
 ])
     
     '''    train_image_transform = T.Compose([
@@ -94,7 +87,8 @@ if __name__ == "__main__":
     print_trainable_parameters(model)
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     print("Parametri ottimizzati:")
-    optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)  
+    #optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)
+    optimizer = torch.optim.SGD(trainable_params, lr=opts.learning_rate, momentum=0.9) 
     #optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
     
     if not opts.no_train:
@@ -102,8 +96,8 @@ if __name__ == "__main__":
         train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
-        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
+        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
         print("START TRAINING")
         # --- Model and Optimizer ---

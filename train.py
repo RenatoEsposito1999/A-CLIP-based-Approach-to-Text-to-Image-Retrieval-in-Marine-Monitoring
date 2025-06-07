@@ -51,9 +51,10 @@ class Train:
             total_loss = 0
             for batch in tqdm(train_loader):
                 images = batch["images"].to(self.opts.device)
-                text_inputs = {k: v.to(self.opts.device) for k, v in batch["captions"].items()}
+                text_inputs = batch["captions"].to(self.opts.device)
+                attention_mask = batch['attention_mask'].to(self.opts.device)
                 categories = batch["category_id"] #for multiclass contrastive
-                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs)
+                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs, attention_mask)
                 #loss = self.loss_fn(image_embeds, text_embeds, self.model.logit_scale, turtle)
                 loss = self.loss_fn(text_embeds,image_embeds,categories, logit_scale)
 
@@ -124,8 +125,10 @@ class Train:
             total_val_loss = 0
             for batch in tqdm(val_loader):
                 images = batch["images"].to(self.opts.device)
-                text_inputs = {k: v.to(self.opts.device) for k, v in batch["captions"].items()}
-                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs)
+                text_inputs = batch["captions"].to(self.opts.device)
+                attention_mask = batch['attention_mask'].to(self.opts.device)
+                categories = batch["category_id"] #for multiclass contrastive
+                image_embeds, text_embeds, logit_scale = self.model(images, text_inputs, attention_mask)
                 categories = batch["category_id"]
                 val_loss = self.loss_fn(text_embeds, image_embeds, categories ,logit_scale)
                 total_val_loss += val_loss.item()

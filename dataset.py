@@ -5,6 +5,7 @@ import pandas as pd
 import torchvision.transforms as T
 from transformers import CLIPTokenizer
 import json
+
         
 class RetrievalDataset(Dataset):
     def __init__(self, csv_path, transform_turtle=None, transform_coco= None, val_transform=None):
@@ -22,7 +23,7 @@ class RetrievalDataset(Dataset):
     
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image = Image.open(row['image_path']).convert('RGB')
+        image = Image.open(row['image_path'])
         caption = row['caption']
         category_id = self.category_dict[row['category']][0]
 
@@ -41,14 +42,24 @@ class RetrievalDataset(Dataset):
         }
 
 # --- Collate Function ---
-def collate_fn(batch, tokenizer):
-    images = torch.stack([item['image'] for item in batch])
+def collate_fn(batch, processor):
+    images = [item['image'] for item in batch]
     captions = [item['caption'] for item in batch]
-    tokens = tokenizer(captions, padding=True, truncation=True, return_tensors="pt")
+    encoding = processor(
+        images=images,
+        text=captions,
+        return_tensors="pt",
+        padding="longest",
+    )
+    
+    images = encoding["pixel_values"]
+    tokens = encoding["input_ids"]
+    attentions_mask = encoding["attention_mask"]
 
     category_id = torch.tensor([item["category_id"] for item in batch])
     return {
         'images': images,
         'captions': tokens,
+        'attention_mask': attentions_mask ,
         'category_id': category_id
     }

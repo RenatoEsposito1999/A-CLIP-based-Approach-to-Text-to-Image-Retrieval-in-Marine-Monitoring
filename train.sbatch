@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=TI-RET
+#SBATCH --job-name=CLIP
 #SBATCH --output=gpu.out 
 #SBATCH --error=gpu.err  
 #SBATCH --time=06:00:00  
@@ -22,4 +22,4 @@ export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
 
 # Add the commands needed to perform GPU processing
-python main.py --learning_rate=1e-4 --resume==True
+python main.py --resume_path="./checkpoint_clip/" --metrics_path="./metrics_clip"  
