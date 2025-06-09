@@ -4,7 +4,8 @@ import torchvision.transforms as T
 from transformers import AutoTokenizer, AutoProcessor
 from transformers import get_cosine_schedule_with_warmup
 from dataset import RetrievalDataset, collate_fn
-from model import RetrievalModel
+#from model import RetrievalModel
+from model_only_clip import RetrievalModel
 from loss import supcon_loss
 from opts import parse_opts
 from train import Train
@@ -64,8 +65,6 @@ if __name__ == "__main__":
     T.RandomHorizontalFlip(p=0.5),
     T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.05),
     T.RandomRotation(degrees=10),
- 
-    
 ])
     val_image_transform = T.Compose([ 
 ])
@@ -87,8 +86,8 @@ if __name__ == "__main__":
     print_trainable_parameters(model)
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     print("Parametri ottimizzati:")
-    #optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)
-    optimizer = torch.optim.SGD(trainable_params, lr=opts.learning_rate, momentum=0.9) 
+    optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)
+    #optimizer = torch.optim.SGD(trainable_params, lr=opts.learning_rate, momentum=0.9) 
     #optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
     
     if not opts.no_train:

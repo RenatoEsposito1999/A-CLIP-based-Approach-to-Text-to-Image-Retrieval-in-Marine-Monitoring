@@ -9,7 +9,7 @@ import json
         
 class RetrievalDataset(Dataset):
     def __init__(self, csv_path, transform_turtle=None, transform_coco= None, val_transform=None):
-        self.df = pd.read_csv(csv_path, nrows=100)
+        self.df = pd.read_csv(csv_path)
         #self.transform = transform if transform else T.ToTensor()
         self.transform_turtle = transform_turtle
         self.transform_coco = transform_coco
@@ -52,11 +52,26 @@ def collate_fn(batch, processor):
         padding="longest",
     )
     
+    
+    
     images = encoding["pixel_values"]
     tokens = encoding["input_ids"]
     attentions_mask = encoding["attention_mask"]
 
-    category_id = torch.tensor([item["category_id"] for item in batch])
+    categories_id = [item["category_id"] for item in batch]
+    category_id = []
+    unique_id_coco = 1
+    for id in categories_id:
+        if id == 0:
+            category_id.append(0) #turtle
+        elif id == 2:
+            category_id.append(-2) #dolphin
+        elif id == 3:
+            category_id.append(-3) #debris
+        else:
+            category_id.append(unique_id_coco)
+            unique_id_coco += 1
+    category_id = torch.tensor(category_id)
     return {
         'images': images,
         'captions': tokens,
