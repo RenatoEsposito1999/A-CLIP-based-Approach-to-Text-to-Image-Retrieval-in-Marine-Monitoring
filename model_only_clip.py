@@ -88,14 +88,8 @@ class RetrievalModel(nn.Module):
         self.clip_model.visual_projection.requires_grad = True
         self.clip_model.text_projection.requires_grad = True
         self.clip_model.logit_scale.requires_grad = True
-        if opts.lora:
-            for param in self.clip_model.vision_model.parameters():
-                param.requires_grad = True
-                
-            for param in self.clip_model.text_model.parameters():
-                param.requires_grad = True
-            self.clip_model = apply_lora_to_clip(self.clip_model)
-            self.clip_model.print_trainable_parameters()
+        if opts.resume == False and opts.lora == True:
+            self.lora_true()
 
         for name, param in self.clip_model.named_parameters():
             if param.requires_grad:
@@ -107,6 +101,22 @@ class RetrievalModel(nn.Module):
         image_embeds = output.image_embeds
         text_embeds = output.text_embeds
         return image_embeds, text_embeds, self.clip_model.logit_scale
+    
+    def lora_true(self):
+        for param in self.clip_model.vision_model.parameters():
+            param.requires_grad = True
+                
+        for param in self.clip_model.text_model.parameters():
+            param.requires_grad = True
+        
+        self.clip_model = apply_lora_to_clip(self.clip_model)
+        
+        self.clip_model.logit_scale.requires_grad = True
+        self.clip_model.print_trainable_parameters()
+        
+        for name, param in self.clip_model.named_parameters():
+            if param.requires_grad:
+                print(f"Nome: {name} | Trainabile: {param.requires_grad} | Shape: {param.shape}")
     
 
 

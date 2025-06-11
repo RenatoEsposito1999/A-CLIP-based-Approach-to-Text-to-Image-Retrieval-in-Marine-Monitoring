@@ -76,3 +76,4 @@ metrics*
 checkpoint*
 best_model_mix*
 best_model_only_turtle*
+best_model_turtle_only_full_clip.pth

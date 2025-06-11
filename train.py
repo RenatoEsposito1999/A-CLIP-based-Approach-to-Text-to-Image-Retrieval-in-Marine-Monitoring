@@ -44,6 +44,8 @@ class Train:
                 self.last_epoch = last_state['epoch']
                 self.best_val_loss = last_state['best_val_loss']
                 self.best_val_loss_turtle = last_state['best_val_loss_turtle']
+                if self.opts.lora:
+                    self.model.lora_true()
 
     def train_loop(self,train_loader, val_loader=None):
         for epoch in tqdm(range(self.last_epoch,self.opts.n_epochs)):
