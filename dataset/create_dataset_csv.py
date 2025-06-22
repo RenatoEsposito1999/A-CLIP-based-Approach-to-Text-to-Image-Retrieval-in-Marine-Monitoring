@@ -8,15 +8,30 @@ import time
 import pandas as pd
 from pycocotools.coco import COCO
 import os
-DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
+
 COCO_CSV_PATH = "COCO_with_category.csv"
-CROPPED_TURTLE_CSV_PATH = "all_cropped_turtle_positive.csv"
-COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
 CROPPED_TURTLE_POSITIVE_CSV_PATH = "cropped_marine_dataset.csv"
+
+DATASET_ANNOTATIONS_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/instances_Train.json"
+COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/DATASET/COCO"
+DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/DATASET/Train_cropped/"
+CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/captions_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/instances_val2014.json"
+
+
+'''DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
+COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
 DATASET_IMAGES_CROPPED_PATH = "/projects/data/turtle-full-v2/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/projects/data/turtle-full-v2/annotations/captions_val2014.json"
-COCO_ISTANCES_VAL_PATH = "/projects/data/turtle-full-v2/annotations/instances_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/projects/data/turtle-full-v2/annotations/instances_val2014.json"'''
 
+
+'''DATASET_ANNOTATIONS_PATH = "/Volumes/Seagate/annotations/instances_Train.json"
+COCO_DATASET_PATH="/Volumes/Seagate/COCO/"
+DATASET_IMAGES_CROPPED_PATH = "/Volumes/Seagate/images/Train_cropped/"
+CAPTIONS_ANNOTATIONS_COCO_PATH = "/Volumes/Seagate/annotations/captions_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/Volumes/Seagate/annotations/instances_val2014.json"
+'''
 #POSSIBILI MODIFICHE DA FARE --> A COCO METTERE LE IMMAGINI CON LE KEYWORD ATTINENTI e/o usare COCO TRAIN
 
 class Annotations:
@@ -43,15 +58,54 @@ class Annotations:
         
         #CREATE NEGATIVE COCO CSV
         self.COCO_create_csv()
-        self.build_category_json()
         #CREATE TRAINING, VALIDATION AND TEST SET
-        self.split_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH,file2=COCO_CSV_PATH)
+        self.split_2_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH,file2=COCO_CSV_PATH)
+        #self.split_1_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH)
+        self.category_info()
 
     def build_category_json(self):
         with open("category_info.json", "w") as file_json:
             json.dump(self.category,file_json, indent=2)
 
-    def split_csv(self,file1, file2, output_prefix='', random_state=None):
+
+    def split_1_csv(self,file1, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_state=None):
+        """
+        Split a CSV file into train, validation, and test sets (default: 80/10/10).
+        
+        Args:
+            file1 (str): Path to the input CSV file.
+            train_ratio (float): Proportion for training set (default: 0.8).
+            val_ratio (float): Proportion for validation set (default: 0.1).
+            test_ratio (float): Proportion for test set (default: 0.1).
+            random_state (int): Seed for reproducibility (optional).
+        
+        Returns:
+            None (saves train.csv, val.csv, test.csv in the same directory).
+        """
+        # Read the input CSV
+        df = pd.read_csv(file1)
+        
+        # Shuffle the dataset (optional, but recommended)
+        df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
+        
+        # Calculate split indices
+        train_end = int(len(df) * train_ratio)
+        val_end = train_end + int(len(df) * val_ratio)
+        
+        # Split into train, val, test
+        train_df = df.iloc[:train_end]
+        val_df = df.iloc[train_end:val_end]
+        test_df = df.iloc[val_end:]
+        
+        # Save to CSV (same directory as input file)
+        output_dir = "/".join(file1.split("/")[:-1]) if "/" in file1 else "."
+        train_df.to_csv(f"{output_dir}/training.csv", index=False)
+        val_df.to_csv(f"{output_dir}/val.csv", index=False)
+        test_df.to_csv(f"{output_dir}/test.csv", index=False)
+        
+        print(f"Split completed: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test samples.")
+
+    def split_2_csv(self,file1, file2, output_prefix='', random_state=None):
         """
         Divide due file CSV in training (80%), validation (10%) e test (10%) set.
         Args:
@@ -76,14 +130,14 @@ class Annotations:
             raise ValueError(f"{file2} ha meno di 20000 righe (richieste: 16000 train + 2000 val + 2000 test)")
         
         # Split per il primo file (8000, 1000, 1000)
-        train1 = df1.iloc[:8000]
-        val1 = df1.iloc[8000:9000]
-        test1 = df1.iloc[9000:10000]
+        train1 = df1.iloc[:12000] # 12000
+        val1 = df1.iloc[12000:13000] #1000
+        test1 = df1.iloc[13000:14000] #1000
         
         # Split per il secondo file (16000, 2000, 2000)
-        train2 = df2.iloc[:16000]
-        val2 = df2.iloc[16000:18000]
-        test2 = df2.iloc[18000:20000]
+        train2 = df2.iloc[:12000]
+        val2 = df2.iloc[12000:14000]
+        test2 = df2.iloc[14000:16000]
         
         # Combina i dataset
         train = pd.concat([train1, train2], ignore_index=True)
@@ -101,7 +155,7 @@ class Annotations:
         test.to_csv(f"{output_prefix}test.csv", index=False)
         
         print("Split completato con successo!")
-        print(f"Training set: {len(train)} righe (8000 da {file1} + 16000 da {file2})")
+        print(f"Training set: {len(train)} righe (12000 da {file1} + 12000 da {file2})")
         print(f"Validation set: {len(val)} righe (1000 da {file1} + 2000 da {file2})")
         print(f"Test set: {len(test)} righe (1000 da {file1} + 2000 da {file2})")
 
@@ -134,7 +188,7 @@ class Annotations:
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
                     writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'dolphin'})
-                    self.store_category_info("dolphin")
+                    #self.store_category_info("dolphin")
                 if img_name[1] == 2: #img with turt == 2
                     dynamic_random = random.Random(time.time())
                     mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
@@ -142,7 +196,7 @@ class Annotations:
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
                     writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'turtle'})
-                    self.store_category_info("turtle")
+                    #self.store_category_info("turtle")
                 if img_name[1] == 3: ## img with trash
                     dynamic_random = random.Random(time.time())
                     mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
@@ -150,7 +204,7 @@ class Annotations:
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
                     writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'debris'})
-                    self.store_category_info("debris")
+                    #self.store_category_info("debris")
                 elif img_name[1] == 4: #other area sea view
                     dynamic_random = random.Random(time.time())
                     mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
@@ -158,7 +212,7 @@ class Annotations:
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
                     writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'sea'})
-                    self.store_category_info("sea")
+                    #self.store_category_info("sea")
 
     def store_category_info(self,category):
         if category in self.category:
@@ -196,9 +250,21 @@ class Annotations:
             for file_name in os.listdir(COCO_DATASET_PATH):
                 caption, category = self.COCO_get_caption_and_category(file_name)
                 if not category == "empty":
-                    writer.writerow({'image_path': COCO_DATASET_PATH+file_name, 'caption': caption, 'category': category})
-                    self.store_category_info(category)
-                
+                    writer.writerow({'image_path': COCO_DATASET_PATH+"/"+file_name, 'caption': caption, 'category': category})
+                    #self.store_category_info(category)
+    
+    def category_info(self):
+        with open("training.csv", mode='r', encoding='utf-8') as file:
+        #with open("cropped_marine_dataset.csv", mode='r', encoding='utf-8') as file:
+            # Utilizza DictReader per accedere ai campi per nome
+            reader = csv.DictReader(file)
+            for row in reader:
+                if 'category' in row:
+                    self.store_category_info(row['category'])
+        self.build_category_json()
+
+
+
 def build_val_only_turtle(file1, file2, n_rows):
         df1 = pd.read_csv(file1)
         df1 = df1.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
@@ -213,10 +279,10 @@ def build_val_only_turtle(file1, file2, n_rows):
         df2 = pd.concat([df2, rows], ignore_index=True)
         
         df2.to_csv(file2, index=False)
-
+    
         
 #build_val_only_turtle(file1="cropped_marine_dataset.csv", file2="only_turtle_val.csv", n_rows=5000)
-dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
+dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=12000,nTrainNeg=12000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''
 Split	Tartarughe	Distrattori (COCO)	Totale

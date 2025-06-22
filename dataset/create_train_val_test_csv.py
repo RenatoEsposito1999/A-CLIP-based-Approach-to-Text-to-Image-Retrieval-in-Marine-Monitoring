@@ -7,7 +7,7 @@ df_dolphin = pd.read_csv('dolphin_images.csv').sample(frac=1, random_state=42)
 df_coco = pd.read_csv('COCO_with_category.csv').sample(frac=1, random_state=42)
 
 # Define train sizes (as per your request)
-train_turtle = 10000
+train_turtle = 12000
 train_debris = 544
 train_dolphin = 484
 train_COCO = 20000
