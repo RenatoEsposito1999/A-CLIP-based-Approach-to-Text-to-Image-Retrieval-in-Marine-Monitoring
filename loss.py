@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from CONST import *
 '''def contrastive_loss(image_embeds, text_embeds, logit_scale=0.07):
     logit_scale = logit_scale.exp()
     logits = logit_scale * image_embeds @ text_embeds.T  # (B, B)
