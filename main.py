@@ -97,7 +97,7 @@ if __name__ == "__main__":
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_coco_transform, transform_coco = train_coco_transform)
+        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_turtle_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))

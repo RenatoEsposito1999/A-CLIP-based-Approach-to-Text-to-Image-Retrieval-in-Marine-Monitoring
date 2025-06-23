@@ -25,8 +25,9 @@ class RetrievalDataset(Dataset):
         row = self.df.iloc[idx]
         image = Image.open(row['image_path'])
         caption = row['caption']
+        
         category_id = self.category_dict[row['category']][0]
-
+        
         if "Train_cropped" in row['image_path'] and self.val_transform is None:
             image = self.transform_turtle(image)
         elif "COCO" in row['image_path']and self.val_transform is None:
@@ -59,19 +60,22 @@ def collate_fn(batch, processor):
     attentions_mask = encoding["attention_mask"]
 
     categories_id = [item["category_id"] for item in batch]
-    category_id = []
+    '''category_id = []
     unique_id_coco = 1
     for id in categories_id:
-        if id == 0:
-            category_id.append(0) #turtle
-        elif id == 2:
-            category_id.append(-2) #dolphin
-        elif id == 3:
-            category_id.append(-3) #debris
+        if id == 2:
+            category_id.append(-2) #turtle
+        if id == 5:
+            category_id.append(-5) #turtle
+        elif id == 10:
+            category_id.append(-10) #dolphin
+        elif id == 11:
+            category_id.append(-11) #debris
         else:
             category_id.append(unique_id_coco)
-            unique_id_coco += 1
-    category_id = torch.tensor(category_id)
+            unique_id_coco += 1'''
+            #category_id.append(id)
+    category_id = torch.tensor(categories_id)
     return {
         'images': images,
         'captions': tokens,

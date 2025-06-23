@@ -57,6 +57,21 @@ def supcon_loss(anchor, positives, labels, temperature):
         labels: Tensor [N] <- Category IDs
         temperature: Logit scale (will be exp() clamped)
     """
+    unique_id_coco = 1
+    category_id = []
+    for id in labels:
+        if id == 2:
+            category_id.append(-2) #turtle
+        elif id == 5:
+            category_id.append(-5) #sea
+        elif id == 10:
+            category_id.append(-10) #dolphin
+        elif id == 11:
+            category_id.append(-11) #debris
+        else:
+            category_id.append(unique_id_coco)
+            unique_id_coco += 1
+    labels = torch.tensor(category_id)
     device = anchor.device
     N = anchor.size(0)
     
@@ -72,17 +87,15 @@ def supcon_loss(anchor, positives, labels, temperature):
     same_category = (labels.unsqueeze(1) == labels.unsqueeze(0)).to(device)  # [N, N]
     diag_mask = ~torch.eye(N, dtype=torch.bool, device=device)   # Mask for non-diagonal
     mask_to_exclude = same_category & diag_mask                  # Same cat. but not self
-    
     # Set excluded similarities to -inf before log_softmax
     masked_sim = sim.masked_fill(mask_to_exclude, float('-inf'))
-    
+   
     # Positive pairs are the diagonal (anchor <-> positive)
     pos_mask = torch.eye(N, dtype=torch.bool, device=device)
     
     # Compute log-probs and focus only on positive pairs (diagonal)
     log_probs = torch.nn.functional.log_softmax(masked_sim, dim=1)
     mean_log_prob_pos = log_probs[pos_mask].mean()
-    
     # Final loss (negative log-likelihood of positive pairs)
     loss = -mean_log_prob_pos
     
