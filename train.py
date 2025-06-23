@@ -78,7 +78,7 @@ class Train:
                     'best_val_loss': self.best_val_loss,
                     'best_val_loss_turtle': self.best_val_loss_turtle
                     }
-            torch.save(state, f"{self.opts.resume_path}checkpoint_{epoch+1}.pth")
+            torch.save(state, f"{self.opts.resume_path}checkpoint.pth")
 
             if val_loader:
                 print("START VALIDATION")
@@ -111,11 +111,11 @@ class Train:
                     best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_mix_path)
                     print(f"Best model saved at {epoch+1} with val_loss {metrics['COCO_TURTLE_val_loss']:.4f}")
-                if metrics['ONLY_TURTLE_val_loss'] < self.best_val_loss_turtle:
+                '''if metrics['ONLY_TURTLE_val_loss'] < self.best_val_loss_turtle:
                     self.best_val_loss_turtle = metrics['ONLY_TURTLE_val_loss']
                     best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_turtle_only_path)
-                    print(f"Best model on only turtle set saved at epoch {epoch+1} with only_turtle_val_loss {metrics['ONLY_TURTLE_val_loss']:.4f}")
+                    print(f"Best model on only turtle set saved at epoch {epoch+1} with only_turtle_val_loss {metrics['ONLY_TURTLE_val_loss']:.4f}")'''
     def eval_loop(self, val_loader):
         self.model.eval()
         all_text_embeds = []
@@ -141,13 +141,13 @@ class Train:
 
                 # --- Loss only on turtle
                 turtle_mask = (categories == 0)
-                if turtle_mask.any():
+                '''if turtle_mask.any():
                     turtle_text_embeds = text_embeds[turtle_mask]
                     turtle_image_embeds = image_embeds[turtle_mask]
                     turtle_labels = categories[turtle_mask]
                     turtle_loss = self.loss_fn(turtle_text_embeds, turtle_image_embeds, turtle_labels, logit_scale)
                     only_turtle_val_loss += turtle_loss.item()
-                    turtle_count += 1
+                    turtle_count += 1'''
 
             all_image_embeds = torch.cat(all_image_embeds, dim=0)
             all_text_embeds = torch.cat(all_text_embeds, dim=0)
@@ -155,8 +155,8 @@ class Train:
             
             metrics = self.compute_metrics(all_text_embeds,all_image_embeds, all_categories )
             metrics['COCO_TURTLE_val_loss']=total_val_loss/len(val_loader)
-            if turtle_count > 0:
-                metrics['ONLY_TURTLE_val_loss'] = only_turtle_val_loss / turtle_count
+            '''if turtle_count > 0:
+                metrics['ONLY_TURTLE_val_loss'] = only_turtle_val_loss / turtle_count'''
             return metrics
 
     '''def compute_metrics(self,text_embeds, image_embeds, labels, suffix=""):

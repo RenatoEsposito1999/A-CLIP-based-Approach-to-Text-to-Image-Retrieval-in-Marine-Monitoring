@@ -9,7 +9,7 @@ import torch.nn as nn
     return loss_t2i
     #return (loss_i2t + loss_t2i) / 2'''
 
-def supcon_loss(anchor, positives, labels, temperature):
+'''def supcon_loss(anchor, positives, labels, temperature):
     """
     anchor: Tensor [N, D] <- Text embeds
     positives: Tensor [N, D] <- Img embeds
@@ -42,5 +42,48 @@ def supcon_loss(anchor, positives, labels, temperature):
     sim = torch.matmul(anchor, positives.T)
    
     
+    
+    return loss'''
+
+
+
+def supcon_loss(anchor, positives, labels, temperature):
+    """
+    Modified SupCon loss that excludes same-category pairs (except diagonal) from negatives.
+    
+    Args:
+        anchor: Tensor [N, D] <- Text embeddings (normalized)
+        positives: Tensor [N, D] <- Image embeddings (normalized)
+        labels: Tensor [N] <- Category IDs
+        temperature: Logit scale (will be exp() clamped)
+    """
+    device = anchor.device
+    N = anchor.size(0)
+    
+    # Normalize embeddings and compute similarity
+    anchor = anchor / anchor.norm(dim=1, keepdim=True)
+    positives = positives / positives.norm(dim=1, keepdim=True)
+    
+    # Apply temperature (gradient-safe)
+    temperature = torch.clamp(temperature.exp(), max=100)
+    sim = temperature * torch.matmul(anchor, positives.T)  # [N, N]
+    
+    # Create mask for same-category pairs (excluding diagonal)
+    same_category = (labels.unsqueeze(1) == labels.unsqueeze(0)).to(device)  # [N, N]
+    diag_mask = ~torch.eye(N, dtype=torch.bool, device=device)   # Mask for non-diagonal
+    mask_to_exclude = same_category & diag_mask                  # Same cat. but not self
+    
+    # Set excluded similarities to -inf before log_softmax
+    masked_sim = sim.masked_fill(mask_to_exclude, float('-inf'))
+    
+    # Positive pairs are the diagonal (anchor <-> positive)
+    pos_mask = torch.eye(N, dtype=torch.bool, device=device)
+    
+    # Compute log-probs and focus only on positive pairs (diagonal)
+    log_probs = torch.nn.functional.log_softmax(masked_sim, dim=1)
+    mean_log_prob_pos = log_probs[pos_mask].mean()
+    
+    # Final loss (negative log-likelihood of positive pairs)
+    loss = -mean_log_prob_pos
     
     return loss

@@ -11,6 +11,11 @@ from opts import parse_opts
 from train import Train
 import os
 import shutil
+from custom_utils.telegram_notification import send_telegram_notification
+from test import tester
+
+CHAT_ID_VINCENZO = "521260346"
+CHAT_ID_RENATO = "407888332"
 
 '''T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
                 std=(0.26862954, 0.26130258, 0.27577711))'''
@@ -95,14 +100,20 @@ if __name__ == "__main__":
         train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_coco_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
-        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
-        val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        val_loader = DataLoader(val_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
         print("START TRAINING")
         # --- Model and Optimizer ---
         #trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
         trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer,scheduler = scheduler, opts=opts)
         trainer.train_loop(train_loader=train_loader,val_loader=val_loader)
+        send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
+        send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
     elif opts.test:
+        test_dataset = RetrievalDataset(opts.test_path, transform_turtle=train_coco_transform, transform_coco = train_coco_transform)
+        test_loader = DataLoader(test_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        tester = tester(opts=opts, model=model, loss_fn = supcon_loss, test_loader = test_loader)
+        tester.test()
         print("TO DO TEST")
     
