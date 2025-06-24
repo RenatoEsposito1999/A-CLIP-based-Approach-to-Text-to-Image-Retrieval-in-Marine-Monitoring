@@ -9,43 +9,6 @@ import torch.nn as nn
     return loss_t2i
     #return (loss_i2t + loss_t2i) / 2'''
 
-'''def supcon_loss(anchor, positives, labels, temperature):
-    """
-    anchor: Tensor [N, D] <- Text embeds
-    positives: Tensor [N, D] <- Img embeds
-    labels: Tensor [N] <-- Category id
-    """
-    device = anchor.device
-    labels = labels.to(device)
-    #temperature = temperature.exp()
-    temperature = torch.clamp(temperature.exp(), max=100)  # <-- Gradient-friendly
-
-    # Calcola similarità
-    #sim = torch.matmul(anchor,positives.T) / temperature
-
-    anchor = anchor / anchor.norm(dim=1, keepdim=True)
-    positives = positives / positives.norm(dim=1, keepdim=True)
-
-    sim = temperature * torch.matmul(anchor, positives.T)  # [N, N]
-
-    # Mask dei positivi (stessa label ma non self)
-    
-    mask = labels.unsqueeze(1) == labels.unsqueeze(0)      # [N, N]
-    
-    log_probs = torch.nn.functional.log_softmax(sim, dim=1)
-    # Solo i positivi contribuiscono
-    mean_log_prob_pos = (mask.float() * log_probs).sum(1) / mask.sum(1).clamp(min=1)
-
-    # Final loss
-    loss = -mean_log_prob_pos.mean()
-
-    sim = torch.matmul(anchor, positives.T)
-   
-    
-    
-    return loss'''
-
-
 
 def supcon_loss(anchor, positives, labels, temperature):
     """
@@ -59,14 +22,15 @@ def supcon_loss(anchor, positives, labels, temperature):
     """
     unique_id_coco = 1
     category_id = []
+    # TO CHECK RESPECT TO CATEGORY INFO.JSON in dataset folder
     for id in labels:
-        if id == 2:
+        if id == 1:
             category_id.append(-2) #turtle
-        elif id == 5:
+        elif id == 7:
             category_id.append(-5) #sea
-        elif id == 10:
+        elif id == 13:
             category_id.append(-10) #dolphin
-        elif id == 11:
+        elif id == 14:
             category_id.append(-11) #debris
         else:
             category_id.append(unique_id_coco)

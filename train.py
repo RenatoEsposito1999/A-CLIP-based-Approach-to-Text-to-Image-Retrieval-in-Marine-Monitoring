@@ -167,13 +167,13 @@ class Train:
         unique_id_coco = 1
         category_id = []
         for id in labels:
-            if id == 2:
+            if id == 1:
                 category_id.append(-2) #turtle
-            elif id == 5:
+            elif id == 7:
                 category_id.append(-5) #sea
-            elif id == 10:
+            elif id == 13:
                 category_id.append(-10) #dolphin
-            elif id == 11:
+            elif id == 14:
                 category_id.append(-11) #debris
             else:
                 category_id.append(unique_id_coco)
