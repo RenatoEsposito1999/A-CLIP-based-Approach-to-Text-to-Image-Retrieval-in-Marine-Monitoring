@@ -215,20 +215,70 @@ class Train:
 
         ranks_all = []
         ranks_turtle = []
+        
+        unique_id_coco = 1
+        category_id = []
+        for id in labels:
+            if id == 2:
+                category_id.append(-2) #turtle
+            elif id == 5:
+                category_id.append(-5) #sea
+            elif id == 10:
+                category_id.append(-10) #dolphin
+            elif id == 11:
+                category_id.append(-11) #debris
+            else:
+                category_id.append(unique_id_coco)
+                unique_id_coco += 1
+        labels = torch.tensor(category_id)
+       
 
-        for i in range(sim_matrix.size(0)):
+        '''for i in range(sim_matrix.size(0)):
             sim_scores = sim_matrix[i]
             sorted_indices = torch.argsort(sim_scores, descending=True)
 
             # Positive = immagini con stessa category_id
             positive_indices = (labels == labels[i]).nonzero(as_tuple=True)[0].to(device)
+            
             found = (sorted_indices.unsqueeze(1) == positive_indices).any(dim=1)
             rank = found.nonzero(as_tuple=True)[0][0].item()
             ranks_all.append(rank)
 
             # Se la category_id è 'turtle' (0), salva anche nel gruppo dedicato
-            if labels[i].item() == 0:
+            if labels[i].item() == -2:
+                ranks_turtle.append(rank)'''
+                
+        for i in range(sim_matrix.size(0)):
+            sim_scores = sim_matrix[i]
+            sorted_indices = torch.argsort(sim_scores, descending=True)
+
+            # Ottieni label della caption i
+            label_i = labels[i].item()
+
+            # Trova immagine corretta (è l'indice stesso: i <-> i)
+            true_index = i
+
+            # Escludi immagini con stessa categoria (tranne la vera immagine)
+            mask = torch.ones_like(labels, dtype=torch.bool, device=device)  # Inizia con tutti True
+            if label_i < 0:  # categorie "da ignorare", tipo -2 ("turtle"), -5, ecc.
+                same_category = (labels == label_i).to(device)
+                mask = ~same_category  # Escludi tutte le immagini con la stessa categoria
+                mask[true_index] = True  # Riabilita l'immagine corretta
+            mask = mask.to(device)
+            # Applica la maschera ai punteggi di similarità
+            filtered_sim_scores = sim_scores.masked_fill(~mask, float('-inf'))
+
+            # Ordina le immagini per similarità
+            sorted_indices = torch.argsort(filtered_sim_scores, descending=True)
+
+            # Trova il rank della vera immagine
+            rank = (sorted_indices == true_index).nonzero(as_tuple=True)[0][0].item()
+            ranks_all.append(rank)
+
+            # Salva anche per turtle
+            if label_i == -2:
                 ranks_turtle.append(rank)
+
 
         ranks_all = torch.tensor(ranks_all, device=device)
         ranks_turtle = torch.tensor(ranks_turtle, device=device) if ranks_turtle else torch.tensor([float("inf")], device=device)
