@@ -27,6 +27,6 @@ def parse_opts():
     parser.add_argument('--resume', default=False, help='If true, model start training from a checkpoint')
     parser.add_argument('--text_encoder', default="bert-base-uncased", help='Name of the text encoder')
     parser.add_argument('--vision_encoder', default="vit_base_patch16_224", help='Name of the ViT')
-    parser.add_argument('--lora', default=True, help='If apply lora or not')
+    parser.add_argument('--lora', default=False, help='If apply lora or not')
     args = parser.parse_args()
     return args

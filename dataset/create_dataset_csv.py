@@ -4,7 +4,7 @@ import csv
 from create_caption import generate_negative_sentence, generate_positive_sentence, generate_dolphine_sentence
 import time
 #from COCO_filter import get_caption
-#from custom_utils.llm import LLM
+from llm import LLM
 import pandas as pd
 from pycocotools.coco import COCO
 import os
@@ -51,7 +51,8 @@ class Annotations:
         self.nTestPos = nTestPos
         self.nTestNeg = nTestNeg
         self.category = {}
-        self.LLM = None #self.LLM = LLM()
+        #self.LLM = None 
+        self.LLM = LLM()
         
         #CREATE POSITIVE TURTLE CSV
         self.turtle_create_csv()

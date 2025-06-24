@@ -1,3 +1,0 @@
-Training set: 24000 righe (12000 da cropped_marine_dataset.csv + 12000 da COCO_with_category.csv)
-Validation set: 3000 righe (1000 da cropped_marine_dataset.csv + 2000 da COCO_with_category.csv)
-Test set: 3000 righe (1000 da cropped_marine_dataset.csv + 2000 da COCO_with_category.csv)

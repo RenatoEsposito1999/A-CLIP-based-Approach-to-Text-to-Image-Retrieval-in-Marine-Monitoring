@@ -49,9 +49,9 @@ class Train:
 
     def train_loop(self,train_loader, val_loader=None):
         for epoch in tqdm(range(self.last_epoch,self.opts.n_epochs)):
-            self.model.train()
+            #self.model.train()
             total_loss = 0
-            for batch in tqdm(train_loader):
+            '''for batch in tqdm(train_loader):
                 images = batch["images"].to(self.opts.device)
                 text_inputs = batch["captions"].to(self.opts.device)
                 attention_mask = batch['attention_mask'].to(self.opts.device)
@@ -66,11 +66,11 @@ class Train:
                 self.optimizer.step()
                 self.scheduler.step()
         
-                total_loss += loss.item()
+                total_loss += loss.item()'''
         
-            print(f"Epoch {epoch+1}/{self.opts.n_epochs}, Loss: {total_loss/len(train_loader):.4f}")
+            #print(f"Epoch {epoch+1}/{self.opts.n_epochs}, Loss: {total_loss/len(train_loader):.4f}")
             # Saving checkpoint
-            state = {
+            '''state = {
                     'epoch': epoch+1,
                     'state_dict': self.model.state_dict(),
                     'optimizer': self.optimizer.state_dict(),
@@ -78,7 +78,7 @@ class Train:
                     'best_val_loss': self.best_val_loss,
                     'best_val_loss_turtle': self.best_val_loss_turtle
                     }
-            torch.save(state, f"{self.opts.resume_path}checkpoint.pth")
+            torch.save(state, f"{self.opts.resume_path}checkpoint.pth")'''
 
             if val_loader:
                 print("START VALIDATION")
@@ -105,6 +105,8 @@ class Train:
                 with open(file_json, "w", encoding="utf-8") as f:
                     json.dump(existing_data, f, indent=4, ensure_ascii=False)
 
+                exit()
+
                 # Save best model
                 if metrics['COCO_TURTLE_val_loss'] < self.best_val_loss:
                     self.best_val_loss = metrics['COCO_TURTLE_val_loss']
@@ -116,6 +118,7 @@ class Train:
                     best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_turtle_only_path)
                     print(f"Best model on only turtle set saved at epoch {epoch+1} with only_turtle_val_loss {metrics['ONLY_TURTLE_val_loss']:.4f}")'''
+    
     def eval_loop(self, val_loader):
         self.model.eval()
         all_text_embeds = []
@@ -247,7 +250,7 @@ class Train:
             # Se la category_id è 'turtle' (0), salva anche nel gruppo dedicato
             if labels[i].item() == -2:
                 ranks_turtle.append(rank)'''
-                
+        # One TURTLE/sea/delphine/debris VS OTHERS 
         for i in range(sim_matrix.size(0)):
             sim_scores = sim_matrix[i]
             sorted_indices = torch.argsort(sim_scores, descending=True)
