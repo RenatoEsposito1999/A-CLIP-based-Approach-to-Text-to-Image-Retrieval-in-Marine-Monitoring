@@ -49,7 +49,6 @@ def masked_contrastive_loss(image_embeds, text_embeds, labels, temperature=0.07)
     logits_i2t = logits.masked_fill(false_neg_mask, float('-inf'))
     logits_t2i = logits.T.masked_fill(false_neg_mask.T, float('-inf'))
     #print("\n ", logits_i2t)
-    #exit()
     # CLIP-style simmetrica
     loss_i2t = nn.functional.cross_entropy(logits_i2t, target)
     loss_t2i = nn.functional.cross_entropy(logits_t2i, target)

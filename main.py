@@ -13,13 +13,31 @@ import os
 import shutil
 from custom_utils.telegram_notification import send_telegram_notification
 from test import tester
-from PIL import Image, ImageFilter
-
+from PIL import ImageFilter
+from sampler import BalancedBatchSampler
+import json
+import csv
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
 '''T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
                 std=(0.26862954, 0.26130258, 0.27577711))'''
+
+def get_labels_list(opts):
+    # 1. Carica il JSON delle categorie
+    with open('./dataset/category_info.json') as f:
+        categories = json.load(f)
+
+    # 2. Leggi il CSV e estrai gli ID numerici
+    category_ids = []
+    with open(opts.dataset_path, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            category_name = row['category']
+            category_id = categories[category_name][0]  # Prendi il primo elemento della lista (ID numerico)
+            category_ids.append(category_id)
+    
+    return category_ids
 
 def print_trainable_parameters(model):    
     total_params = sum(p.numel() for p in model.parameters())    
@@ -108,10 +126,14 @@ if __name__ == "__main__":
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
+        labels = get_labels_list(opts=opts)
+        sampler = BalancedBatchSampler(batch_size=opts.batch_size, labels=labels,n_classes=16)
+        
         train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_heavy_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
-        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        #train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4,  shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
+        train_loader = DataLoader(train_dataset,num_workers=4, batch_size=opts.batch_size, sampler=sampler, collate_fn=lambda b: collate_fn(b, processor))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
         print("START TRAINING")
