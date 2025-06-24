@@ -1,6 +1,5 @@
 from tqdm import tqdm
 import torch
-import copy
 import torch.nn.functional as F
 import json
 import os
@@ -92,7 +91,7 @@ class Train:
                 if os.path.exists(file_json):
                     with open(file_json, "r", encoding="utf-8") as f:
                         # Load as list or dictionaries
-                        existing_data = json.load(f)  
+                        existing_data = json.load(f)
                 else:
                     # If it doesn't exist, start with an empty list.
                     existing_data = []  

@@ -13,6 +13,7 @@ import os
 import shutil
 from custom_utils.telegram_notification import send_telegram_notification
 from test import tester
+from PIL import Image, ImageFilter
 
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
@@ -39,6 +40,7 @@ def set_scheduler(optimizer, tot_num_epochs, steps_per_epoch):
     
     
 if __name__ == "__main__":
+    
     opts = parse_opts()
 
     if opts.device != 'cpu':
@@ -62,29 +64,40 @@ if __name__ == "__main__":
     processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
     
     # --- Transforms ---
-    # N.B Both transforms are equal, but in future we could apply arg. 
+    # train_coco_transform is empty for val dataset. 
     train_coco_transform = T.Compose([
-])
+    ])
     train_turtle_transform = T.Compose([
     T.RandomResizedCrop(224,scale=(0.8, 1.0), ratio=(0.9, 1.1)),
     T.RandomHorizontalFlip(p=0.5),
     T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.05),
     T.RandomRotation(degrees=10),
 ])
-    val_image_transform = T.Compose([ 
-])
     
-    '''    train_image_transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-    ])
-    val_image_transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-    ])
-    '''
+    train_heavy_transform = T.Compose([
+    # Ridimensionamento e crop più aggressivo (range più ampio)
+    T.RandomResizedCrop(224, scale=(0.6, 1.2), ratio=(0.7, 1.3)),  # Scala e ratio più estremi
+    
+    # Flipping e rotazioni estreme
+    T.RandomHorizontalFlip(p=0.7),  # Probabilità più alta
+    T.RandomVerticalFlip(p=0.3),    # Aggiungi flip verticale
+    T.RandomRotation(degrees=30),   # Rotazione fino a 30 gradi
+    
+    # Distorsioni prospettiche/geometriche
+    T.RandomPerspective(distortion_scale=0.4, p=0.5),  # Effetto "warp"
+    T.RandomAffine(degrees=0, translate=(0.2, 0.2)),   # Traslazioni casuali
+    # Applica GaussianBlur come filtro PIL
+    lambda img: img.filter(ImageFilter.GaussianBlur(radius=1)),  # Radius controlla l'intensità
+    # Alterazioni cromatiche pesanti
+    T.ColorJitter(
+        brightness=0.4,  # Variazione più forte di luminosità
+        contrast=0.4,    # Contrasto più marcato
+        saturation=0.3,  # Saturazione più variabile
+        hue=0.1          # Tonalità più ampia (max consentito è 0.5)
+    ),
+])
+
+    
 
     # Model and optimizer
     model = RetrievalModel(opts=opts).to(opts.device)
@@ -92,18 +105,19 @@ if __name__ == "__main__":
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     print("Parametri ottimizzati:")
     optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)
-    #optimizer = torch.optim.SGD(trainable_params, lr=opts.learning_rate, momentum=0.9) 
-    #optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
+
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_turtle_transform, transform_coco = train_turtle_transform)
+        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_heavy_transform, transform_coco = train_coco_transform)
         
         val_dataset = RetrievalDataset(opts.validation_path,val_transform=train_coco_transform)
         train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
         print("START TRAINING")
+        send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
+        send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
         # --- Model and Optimizer ---
         #trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
         trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer,scheduler = scheduler, opts=opts)
