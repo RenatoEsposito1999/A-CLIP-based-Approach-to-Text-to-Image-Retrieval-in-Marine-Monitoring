@@ -68,7 +68,7 @@ class Annotations:
             json.dump(self.category,file_json, indent=2)
 
 
-    def split_1_csv(self,file1, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_state=None):
+    '''def split_1_csv(self,file1, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_state=None):
         """
         Split a CSV file into train, validation, and test sets (default: 80/10/10).
         
@@ -103,7 +103,7 @@ class Annotations:
         val_df.to_csv(f"{output_dir}/val.csv", index=False)
         test_df.to_csv(f"{output_dir}/test.csv", index=False)
         
-        print(f"Split completed: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test samples.")
+        print(f"Split completed: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test samples.")'''
 
     def split_2_csv(self,file1, file2, output_prefix='', random_state=None):
         """
@@ -129,12 +129,12 @@ class Annotations:
         if len(df2) < (self.nTrainNeg + self.nValNeg + self.nTestNeg): 
             raise ValueError(f"{file2} ha meno di 20000 righe (richieste: 16000 train + 2000 val + 2000 test)")
         
-        # Split per il primo file (8000, 1000, 1000)
-        train1 = df1.iloc[:12000] # 12000
-        val1 = df1.iloc[12000:13000] #1000
-        test1 = df1.iloc[13000:14000] #1000
+        # Split per il primo file (8000, 1000, 1000)   TURTLE 
+        train1 = df1.iloc[2000:10000] # 8k
+        val1 = df1.iloc[11500:12500] #1k
+        test1 = df1.iloc[14000:15000] #1k
         
-        # Split per il secondo file (16000, 2000, 2000)
+        # Split per il secondo file (16000, 2000, 2000) COCO
         train2 = df2.iloc[:12000]
         val2 = df2.iloc[12000:14000]
         test2 = df2.iloc[14000:16000]
@@ -282,7 +282,7 @@ def build_val_only_turtle(file1, file2, n_rows):
     
         
 #build_val_only_turtle(file1="cropped_marine_dataset.csv", file2="only_turtle_val.csv", n_rows=5000)
-dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=12000,nTrainNeg=12000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
+dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''
 Split	Tartarughe	Distrattori (COCO)	Totale

@@ -6,7 +6,7 @@ from transformers import get_cosine_schedule_with_warmup
 from dataset import RetrievalDataset, collate_fn
 #from model import RetrievalModel
 from model_only_clip import RetrievalModel
-from loss import supcon_loss
+from loss import supcon_loss, masked_contrastive_loss
 from opts import parse_opts
 from train import Train
 import os
@@ -97,7 +97,6 @@ if __name__ == "__main__":
     ),
 ])
 
-    
 
     # Model and optimizer
     model = RetrievalModel(opts=opts).to(opts.device)
@@ -120,7 +119,7 @@ if __name__ == "__main__":
         send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
         # --- Model and Optimizer ---
         #trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
-        trainer = Train(model=model,loss_fn=supcon_loss,optimizer=optimizer,scheduler = scheduler, opts=opts)
+        trainer = Train(model=model,loss_fn=masked_contrastive_loss,optimizer=optimizer,scheduler = scheduler, opts=opts)
         trainer.train_loop(train_loader=train_loader,val_loader=val_loader)
         send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
         send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)

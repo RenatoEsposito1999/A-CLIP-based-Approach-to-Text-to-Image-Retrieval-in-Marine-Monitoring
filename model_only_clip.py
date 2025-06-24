@@ -6,7 +6,7 @@ from transformers import AutoModel, CLIPModel
 from lora import apply_lora_to_clip
 from typing import Optional
 
-class myClipModel(CLIPModel):
+'''class myClipModel(CLIPModel):
     def get_text_features(
         self,
         input_ids: Optional[torch.Tensor] = None,
@@ -54,7 +54,7 @@ class myClipModel(CLIPModel):
 
         pooled_output = vision_outputs.pooler_output
 
-        return pooled_output
+        return pooled_output'''
  
 class RetrievalModel(nn.Module):
     def __init__(self, 
@@ -87,7 +87,7 @@ class RetrievalModel(nn.Module):
             param.requires_grad = False
         self.clip_model.visual_projection.requires_grad = True
         self.clip_model.text_projection.requires_grad = True
-        self.clip_model.logit_scale.requires_grad = False
+        #self.clip_model.logit_scale.requires_grad = False
         if opts.resume == False and opts.lora == True:
             self.lora_true()
 
@@ -111,7 +111,7 @@ class RetrievalModel(nn.Module):
         
         self.clip_model = apply_lora_to_clip(self.clip_model)
         
-        self.clip_model.logit_scale.requires_grad = False
+        self.clip_model.logit_scale.requires_grad = True
         self.clip_model.print_trainable_parameters()
         
         for name, param in self.clip_model.named_parameters():
