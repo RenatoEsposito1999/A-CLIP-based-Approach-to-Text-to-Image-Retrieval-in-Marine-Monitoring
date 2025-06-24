@@ -12,11 +12,11 @@ import os
 COCO_CSV_PATH = "COCO_with_category.csv"
 CROPPED_TURTLE_POSITIVE_CSV_PATH = "cropped_marine_dataset.csv"
 
-DATASET_ANNOTATIONS_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/instances_Train.json"
-COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/DATASET/COCO"
-DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/DATASET/Train_cropped/"
-CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/captions_val2014.json"
-COCO_ISTANCES_VAL_PATH = "/workspace/text-to-image-retrivial/DATASET/annotations/instances_val2014.json"
+DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
+COCO_DATASET_PATH = "/workspace/COCO"
+DATASET_IMAGES_CROPPED_PATH = "/workspace/Train_cropped/"
+CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
 
 
 '''DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
@@ -51,8 +51,7 @@ class Annotations:
         self.nTestPos = nTestPos
         self.nTestNeg = nTestNeg
         self.category = {}
-        #self.LLM = None 
-        self.LLM = LLM()
+        self.LLM = None #self.LLM = LLM()
         
         #CREATE POSITIVE TURTLE CSV
         self.turtle_create_csv()
