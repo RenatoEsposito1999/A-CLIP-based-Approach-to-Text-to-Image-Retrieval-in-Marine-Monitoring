@@ -81,14 +81,25 @@ class RetrievalModel(nn.Module):
         self.clip_model = CLIPModel.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
         # Ora applica il freezing/unfreezing
         # Freeza solo i modelli principali, NON i layer di proiezione
-        for param in self.clip_model.vision_model.parameters():
+        '''for param in self.clip_model.vision_model.parameters():
             param.requires_grad = False
 
         for param in self.clip_model.text_model.parameters():
-            param.requires_grad = False
+            param.requires_grad = False'''
+        for param in self.clip_model.vision_model.parameters():
+            param.requires_grad = True
+
+        for param in self.clip_model.text_model.parameters():
+            param.requires_grad = True
+
+            
         self.clip_model.visual_projection.requires_grad = True
         self.clip_model.text_projection.requires_grad = True
         #self.clip_model.logit_scale.requires_grad = False
+        self.clip_model.logit_scale.requires_grad = True
+
+        self.dropout = nn.Dropout(p=0.1)
+
         if opts.resume == False and opts.lora == True:
             self.lora_true()
 
@@ -99,8 +110,10 @@ class RetrievalModel(nn.Module):
  
     def forward(self, images, text_inputs, attention_mask):
         output = self.clip_model(input_ids = text_inputs, pixel_values = images, attention_mask = attention_mask, return_loss = False)
-        image_embeds = output.image_embeds
-        text_embeds = output.text_embeds
+        '''image_embeds = output.image_embeds
+        text_embeds = output.text_embeds'''
+        image_embeds = self.dropout(output.image_embeds)  # Dropout sulle features visive
+        text_embeds = self.dropout(output.text_embeds)    # Dropout sulle features testuali
         return image_embeds, text_embeds, self.clip_model.logit_scale
     
     def lora_true(self):

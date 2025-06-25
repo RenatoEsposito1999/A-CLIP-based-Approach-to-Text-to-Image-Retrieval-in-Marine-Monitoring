@@ -17,6 +17,7 @@ from PIL import ImageFilter
 from sampler import BalancedBatchSampler
 import json
 import csv
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
@@ -123,7 +124,6 @@ if __name__ == "__main__":
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     print("Parametri ottimizzati:")
     optimizer = torch.optim.AdamW(trainable_params, lr=opts.learning_rate, weight_decay=opts.weight_decay)
-
     
     if not opts.no_train:
         # --- Dataset and Dataloader ---
@@ -136,7 +136,14 @@ if __name__ == "__main__":
         #train_loader = DataLoader(train_dataset, batch_size=opts.batch_size,num_workers=4,  shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
         train_loader = DataLoader(train_dataset,num_workers=4, batch_size=opts.batch_size, sampler=sampler, collate_fn=lambda b: collate_fn(b, processor))
         val_loader = DataLoader(val_dataset, batch_size=opts.batch_size,num_workers=4, shuffle=True, collate_fn=lambda b: collate_fn(b, processor))
-        scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
+        #scheduler = set_scheduler(optimizer=optimizer, tot_num_epochs=opts.n_epochs, steps_per_epoch=len(train_loader))
+        scheduler = ReduceLROnPlateau(
+        optimizer,
+        mode='min',       # Monitora il val_loss (minimizzare)
+        factor=0.1,      # Riduci il LR di 10x quando si attiva
+        patience=3,      # Aspetta 3 epoche senza miglioramenti
+        verbose=True     # Stampa un messaggio quando il LR viene ridotto
+        )
         print("START TRAINING")
         send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
         send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)

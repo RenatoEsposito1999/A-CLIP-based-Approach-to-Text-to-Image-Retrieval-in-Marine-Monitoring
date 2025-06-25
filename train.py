@@ -62,7 +62,7 @@ class Train:
                 loss.backward()
                 
                 self.optimizer.step()
-                self.scheduler.step()
+                #self.scheduler.step()
         
                 total_loss += loss.item()
         
@@ -104,11 +104,11 @@ class Train:
                     json.dump(existing_data, f, indent=4, ensure_ascii=False)
 
                 # Save best model
-                if metrics['COCO_TURTLE_val_loss'] < self.best_val_loss:
-                    self.best_val_loss = metrics['COCO_TURTLE_val_loss']
+                if metrics['val_loss'] < self.best_val_loss:
+                    self.best_val_loss = metrics['val_loss']
                     best_model_state = self.model.state_dict()
                     torch.save(best_model_state, self.opts.best_model_mix_path)
-                    print(f"Best model saved at {epoch+1} with val_loss {metrics['COCO_TURTLE_val_loss']:.4f}")
+                    print(f"Best model saved at {epoch+1} with val_loss {metrics['val_loss']:.4f}")
                 
     def eval_loop(self, val_loader):
         self.model.eval()
@@ -139,7 +139,8 @@ class Train:
             all_categories = torch.cat(all_categories, dim=0)
             
             metrics = self.compute_metrics(all_text_embeds,all_image_embeds, all_categories )
-            metrics['COCO_TURTLE_val_loss']=total_val_loss/len(val_loader)
+            metrics['val_loss']=total_val_loss/len(val_loader)
+            self.scheduler.step(total_val_loss/len(val_loader)) # Aggiorna il LR sulla base della val loss. 
             return metrics
 
     
@@ -226,5 +227,5 @@ class Train:
 
         ranks_all = torch.tensor(ranks_all, device=device)
 
-        metrics = self.calc_recall(ranks_all,suffix = "COCO_TURTLE_")
+        metrics = self.calc_recall(ranks_all,suffix = "")
         return metrics
