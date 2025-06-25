@@ -77,7 +77,8 @@ class RetrievalModel(nn.Module):
         text_output_dim = self.bert.config.hidden_size'''
         
         #Definition of CLIP model
-        self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        #self.clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        self.clip_model = CLIPModel.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
         # Ora applica il freezing/unfreezing
         # Freeza solo i modelli principali, NON i layer di proiezione
         for param in self.clip_model.vision_model.parameters():

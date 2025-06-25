@@ -15,21 +15,22 @@ from custom_utils.telegram_notification import send_telegram_notification
 from PIL import Image
 opts = parse_opts()
 
-processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
+processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
 model = RetrievalModel(opts=opts).to(opts.device)
-last_state = torch.load("/workspace/CLIP/text-to-image-retrivial/best_model_mix.pth")
+last_state = torch.load(opts.best_model_mix_path)
 model.load_state_dict(last_state)
 
 
 
 # carica immagini
-images = [Image.open(path) for path in ["/workspace/text-to-image-retrivial/DATASET/Train_cropped/cropped_frame_031810.PNG", 
-                                        "/workspace/text-to-image-retrivial/DATASET/COCO/COCO_val2014_000000284851.jpg",
-                                        "/workspace/text-to-image-retrivial/DATASET/COCO/COCO_val2014_000000248111.jpg",
-                                        "/workspace/text-to-image-retrivial/DATASET/COCO/COCO_val2014_000000340529.jpg"]]
+images = [Image.open(path) for path in ["/workspace/COCO/COCO_val2014_000000217886.jpg", 
+                                        "/workspace/COCO/COCO_val2014_000000119709.jpg",
+                                        "/workspace/Train_cropped/cropped_frame_054807.PNG",
+                                        "/workspace/COCO/COCO_val2014_000000230838.jpg",
+                                        "/workspace/COCO/COCO_val2014_000000037470.jpg"]]
 
 # caption
-caption = "a cat and dog"
+caption = "a cat plays"
 
 # usa il processor per ottenere i tensori
 inputs = processor(

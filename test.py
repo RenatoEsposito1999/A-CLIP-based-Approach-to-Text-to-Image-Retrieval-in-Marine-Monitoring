@@ -12,7 +12,7 @@ class tester():
         self.model = model
         self.test_loader = test_loader
         self.loss_fn = loss_fn
-        last_state = torch.load("/workspace/CLIP/text-to-image-retrivial/best_model_mix.pth")
+        last_state = torch.load(opts.best_model_mix_path)
         self.model.load_state_dict(last_state)
     def test(self):
         self.model.eval()
@@ -62,23 +62,23 @@ class tester():
         device = sim_matrix.device
 
         ranks_all = []
-        ranks_turtle = []
         
         unique_id_coco = 1
         category_id = []
         for id in labels:
-            if id == 2:
+            if id == 1:
                 category_id.append(-2) #turtle
-            elif id == 5:
+            elif id == 7:
                 category_id.append(-5) #sea
-            elif id == 10:
+            elif id == 13:
                 category_id.append(-10) #dolphin
-            elif id == 11:
+            elif id == 14:
                 category_id.append(-11) #debris
             else:
                 category_id.append(unique_id_coco)
                 unique_id_coco += 1
         labels = torch.tensor(category_id)
+       
 
         '''for i in range(sim_matrix.size(0)):
             sim_scores = sim_matrix[i]
@@ -86,6 +86,7 @@ class tester():
 
             # Positive = immagini con stessa category_id
             positive_indices = (labels == labels[i]).nonzero(as_tuple=True)[0].to(device)
+            
             found = (sorted_indices.unsqueeze(1) == positive_indices).any(dim=1)
             rank = found.nonzero(as_tuple=True)[0][0].item()
             ranks_all.append(rank)
@@ -93,7 +94,7 @@ class tester():
             # Se la category_id è 'turtle' (0), salva anche nel gruppo dedicato
             if labels[i].item() == -2:
                 ranks_turtle.append(rank)'''
-                
+        # One TURTLE/sea/delphine/debris VS OTHERS 
         for i in range(sim_matrix.size(0)):
             sim_scores = sim_matrix[i]
             sorted_indices = torch.argsort(sim_scores, descending=True)
@@ -121,17 +122,10 @@ class tester():
             rank = (sorted_indices == true_index).nonzero(as_tuple=True)[0][0].item()
             ranks_all.append(rank)
 
-            # Salva anche per turtle
-            if label_i == -2:
-                ranks_turtle.append(rank)
 
 
         ranks_all = torch.tensor(ranks_all, device=device)
-        ranks_turtle = torch.tensor(ranks_turtle, device=device) if ranks_turtle else torch.tensor([float("inf")], device=device)
 
         metrics = self.calc_recall(ranks_all,suffix = "COCO_TURTLE_")
-        turtle_metrics = self.calc_recall(ranks_turtle,suffix="TURTLE_ONLY_")
-        #turtle_metrics = {f"{suffix}turtle_{k}": v for k, v in turtle_metrics.items()}
-        metrics.update(turtle_metrics)
         return metrics
         

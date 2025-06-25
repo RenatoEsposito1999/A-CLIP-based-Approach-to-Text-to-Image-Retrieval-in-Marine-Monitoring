@@ -70,16 +70,17 @@ if __name__ == "__main__":
 
     if not os.path.exists(opts.metrics_path):
         os.makedirs(opts.metrics_path)
-    elif os.path.exists(opts.metrics_path) and not opts.resume: # if the path exists and resume is false then the path refers to old metre, so I delete the files inside
+    '''elif os.path.exists(opts.metrics_path) and not opts.resume and not opts.no_train: # if the path exists and resume is false then the path refers to old metre, so I delete the files inside
         # Deletes ALL contents of the directory (files and subdirectories)
         shutil.rmtree(opts.metrics_path)
         # Recreate the empty directory
-        os.makedirs(opts.metrics_path)
+        os.makedirs(opts.metrics_path)'''
 
 
     # --- Tokenizer ---
     #clip_tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch16")
-    processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    #processor = AutoProcessor.from_pretrained("openai/clip-vit-base-patch32")
+    processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
     
     # --- Transforms ---
     # train_coco_transform is empty for val dataset. 
