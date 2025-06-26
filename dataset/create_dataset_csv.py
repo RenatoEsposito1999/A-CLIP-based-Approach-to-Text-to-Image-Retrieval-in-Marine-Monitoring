@@ -9,8 +9,8 @@ import pandas as pd
 from pycocotools.coco import COCO
 import os
 
-COCO_CSV_PATH = "COCO_with_category.csv"
-CROPPED_TURTLE_POSITIVE_CSV_PATH = "cropped_marine_dataset.csv"
+COCO_TXT_PATH = "COCO_with_category.txt"
+CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_marine_dataset.csv"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
 COCO_DATASET_PATH = "/workspace/COCO"
@@ -59,7 +59,7 @@ class Annotations:
         #CREATE NEGATIVE COCO CSV
         self.COCO_create_csv()
         #CREATE TRAINING, VALIDATION AND TEST SET
-        self.split_2_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH,file2=COCO_CSV_PATH)
+        self.split_2_csv(file1=CROPPED_TURTLE_POSITIVE_TXT_PATH,file2=COCO_TXT_PATH)
         #self.split_1_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH)
         self.category_info()
 
@@ -105,59 +105,72 @@ class Annotations:
         
         print(f"Split completed: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test samples.")'''
 
-    def split_2_csv(self,file1, file2, output_prefix='', random_state=None):
+    def split_2_txt(self, file1, file2, output_prefix='', random_state=None):
         """
-        Divide due file CSV in training (80%), validation (10%) e test (10%) set.
+        Divide due file TXT in training (80%), validation (10%) e test (10%) set.
+        Formato input/output: 'image_name, comment_number, comment'
         Args:
-            file1 (str): Percorso del primo file CSV (fornirà 8000 train, 1000 val, 1000 test)
-            file2 (str): Percorso del secondo file CSV (fornirà 16000 train, 2000 val, 2000 test)
+            file1 (str): Percorso del primo file TXT (fornirà 8000 train, 1000 val, 1000 test)
+            file2 (str): Percorso del secondo file TXT (fornirà 16000 train, 2000 val, 2000 test)
             output_prefix (str): Prefisso per i file di output
             random_state (int): Seed per la riproducibilità
         """
-        # Carica i file CSV
-        df1 = pd.read_csv(file1)
-        df2 = pd.read_csv(file2)
+        # Funzione per caricare un file TXT in un DataFrame
+        def load_txt_to_df(txt_path):
+            with open(txt_path, 'r') as f:
+                lines = [line.strip().split(', ', 2) for line in f.readlines() if line.strip()]
+            return pd.DataFrame(lines, columns=['image_name', 'comment_number', 'comment'])
+
+        # Carica i file TXT
+        df1 = load_txt_to_df(file1)
+        df2 = load_txt_to_df(file2)
         
         # Mescola i dataframe
         df1 = df1.sample(frac=1, random_state=random_state).reset_index(drop=True)
         df2 = df2.sample(frac=1, random_state=random_state).reset_index(drop=True)
         
-        # Verifica che ci siano abbastanza righe
+        # Verifica che ci siano abbastanza righe (stessi controlli originali)
         if len(df1) < (self.nTrainPos + self.nValPos + self.nTestPos): 
             raise ValueError(f"{file1} ha meno di 10000 righe (richieste: 8000 train + 1000 val + 1000 test)")
-        
         if len(df2) < (self.nTrainNeg + self.nValNeg + self.nTestNeg): 
             raise ValueError(f"{file2} ha meno di 20000 righe (richieste: 16000 train + 2000 val + 2000 test)")
         
-        # Split per il primo file (8000, 1000, 1000)   TURTLE 
-        train1 = df1.iloc[2000:10000] # 8k
-        val1 = df1.iloc[11500:12500] #1k
-        test1 = df1.iloc[14000:15000] #1k
+        # Split per il primo file (8000 train, 1000 val, 1000 test) - TURTLE
+        train1 = df1.iloc[2000:10000]  # 8k
+        val1 = df1.iloc[11500:12500]   # 1k
+        test1 = df1.iloc[14000:15000]  # 1k
         
-        # Split per il secondo file (16000, 2000, 2000) COCO
-        train2 = df2.iloc[:12000]
-        val2 = df2.iloc[12000:14000]
-        test2 = df2.iloc[14000:16000]
+        # Split per il secondo file (16000 train, 2000 val, 2000 test) - COCO
+        train2 = df2.iloc[:12000]       # 12k (originale: 16k, ma hai solo 12k righe nel tuo esempio)
+        val2 = df2.iloc[12000:14000]   # 2k
+        test2 = df2.iloc[14000:16000]  # 2k
         
         # Combina i dataset
         train = pd.concat([train1, train2], ignore_index=True)
         val = pd.concat([val1, val2], ignore_index=True)
         test = pd.concat([test1, test2], ignore_index=True)
         
-        # Mescola i dataset combinati (mantenendo la proporzione ma mischiando le fonti)
+        # Mescola i dataset combinati
         train = train.sample(frac=1, random_state=random_state).reset_index(drop=True)
         val = val.sample(frac=1, random_state=random_state).reset_index(drop=True)
         test = test.sample(frac=1, random_state=random_state).reset_index(drop=True)
         
-        # Salva i file
-        train.to_csv(f"{output_prefix}training.csv", index=False)
-        val.to_csv(f"{output_prefix}val.csv", index=False)
-        test.to_csv(f"{output_prefix}test.csv", index=False)
+        # Funzione per salvare DataFrame come TXT
+        def save_df_to_txt(df, output_path):
+            with open(output_path, 'w') as f:
+                f.write("image_name, comment_number, comment\n")  # Header
+                for _, row in df.iterrows():
+                    f.write(f"{row['image_name']}, {row['comment_number']}, {row['comment']}\n")
+        
+        # Salva i file TXT
+        save_df_to_txt(train, f"{output_prefix}training.txt")
+        save_df_to_txt(val, f"{output_prefix}val.txt")
+        save_df_to_txt(test, f"{output_prefix}test.txt")
         
         print("Split completato con successo!")
-        print(f"Training set: {len(train)} righe (12000 da {file1} + 12000 da {file2})")
-        print(f"Validation set: {len(val)} righe (1000 da {file1} + 2000 da {file2})")
-        print(f"Test set: {len(test)} righe (1000 da {file1} + 2000 da {file2})")
+        print(f"Training set: {len(train)} righe ({len(train1)} da {file1} + {len(train2)} da {file2})")
+        print(f"Validation set: {len(val)} righe ({len(val1)} da {file1} + {len(val2)} da {file2})")
+        print(f"Test set: {len(test)} righe ({len(test1)} da {file1} + {len(test2)} da {file2})")
 
     # Esempio di utilizzo:
     # split_csv('file1.csv', 'file2.csv', random_state=42)
@@ -174,12 +187,9 @@ class Annotations:
         random.shuffle(self.img_list)
         return self.img_list
 
-    def turtle_create_csv(self):
-        with open(CROPPED_TURTLE_POSITIVE_CSV_PATH,'w', newline='') as csv_file:
-            fieldnames = ['image_path', 'caption','category']
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-            #counter_negative_with_trash = 0
-            writer.writeheader()
+    def turtle_create_txt(self):
+        with open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='') as txt_file:
+            txt_file.write("image_name, comment_number, comment\n")
             for img_name in self.img_list:
                 if img_name[1] == 1: #img with dolphine
                     dynamic_random = random.Random(time.time())
@@ -187,7 +197,7 @@ class Annotations:
                     sentence = generate_dolphine_sentence()
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'dolphin'})
+                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
                     #self.store_category_info("dolphin")
                 if img_name[1] == 2: #img with turt == 2
                     dynamic_random = random.Random(time.time())
@@ -195,7 +205,7 @@ class Annotations:
                     sentence = generate_positive_sentence()
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'turtle'})
+                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
                     #self.store_category_info("turtle")
                 if img_name[1] == 3: ## img with trash
                     dynamic_random = random.Random(time.time())
@@ -203,7 +213,7 @@ class Annotations:
                     sentence = generate_negative_sentence(include_trash=True)
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'debris'})
+                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
                     #self.store_category_info("debris")
                 elif img_name[1] == 4: #other area sea view
                     dynamic_random = random.Random(time.time())
@@ -211,7 +221,7 @@ class Annotations:
                     sentence = generate_negative_sentence(include_trash=False)
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    writer.writerow({'image_path': DATASET_IMAGES_CROPPED_PATH+"cropped_"+img_name[0], 'caption':sentence, 'category':'sea'})
+                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
                     #self.store_category_info("sea")
 
     def store_category_info(self,category):
@@ -229,29 +239,28 @@ class Annotations:
                 img_id = self.captions_coco.imgs[idx]["id"]
                 ann_ids = self.captions_coco.getAnnIds(imgIds=img_id)
                 captions = self.captions_coco.loadAnns(ann_ids)
-                caption = captions[random.randint(0,len(captions)-1)]['caption']
-                obj_ann_ids = self.instances_coco.getAnnIds(imgIds=img_id)
-                obj_anns = self.instances_coco.loadAnns(obj_ann_ids)
-                category_ids = list(set([ann['category_id'] for ann in obj_anns]))
-                if not category_ids:
+                #caption = captions[random.randint(0,len(captions)-1)]['caption']
+                #obj_ann_ids = self.instances_coco.getAnnIds(imgIds=img_id)
+                #obj_anns = self.instances_coco.loadAnns(obj_ann_ids)
+                #category_ids = list(set([ann['category_id'] for ann in obj_anns]))
+                '''if not category_ids:
                     supercategory = "empty"
                 else:
                     supercategories = list(set([self.instances_coco.cats[cat_id]['supercategory']
                                             for cat_id in category_ids]))
-                    supercategory = random.choice(supercategories)
-                return caption, supercategory
+                    supercategory = random.choice(supercategories)'''
+                return captions["caption"]
         
-    def COCO_create_csv(self):        
-        #with open(COCO_CSV_PATH,'w', newline='') as csv_file:
-        with open(COCO_CSV_PATH,'w', newline='') as csv_file:
-            fieldnames = ['image_path', 'caption','category']
-            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-            writer.writeheader()
+    def COCO_create_txt(self):        
+        with open(COCO_TXT_PATH, 'w') as txt_file:  # Apri il file in modalità scrittura
+            txt_file.write("image_name, comment_number, comment\n")
             for file_name in os.listdir(COCO_DATASET_PATH):
-                caption, category = self.COCO_get_caption_and_category(file_name)
-                if not category == "empty":
-                    writer.writerow({'image_path': COCO_DATASET_PATH+"/"+file_name, 'caption': caption, 'category': category})
-                    #self.store_category_info(category)
+                # Ottieni la lista di caption e la categoria
+                captions = self.COCO_get_caption_and_category(file_name)            
+                # Per ogni caption nella lista, scrivi una riga nel file .txt
+                for i, caption in enumerate(captions):
+                    # Formato: image_name, comment_number, comment
+                    txt_file.write(f"{file_name}, {i}, {caption}\n")
     
     def category_info(self):
         with open("training.csv", mode='r', encoding='utf-8') as file:
