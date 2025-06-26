@@ -1,3 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore everything in data folder except specific subdirectories
+datasets/*
+!datasets/download_flickr30k.sh
+!datasets/readme.txt
+
+gallery/*
+!gallery/readme.txt
+
+# Ignore .pth files in deployment folder
+deployment/*.pth
+
+# Ignore faiss index files in gallery folder
+gallery/*.faiss
+
+
+# Ignore all logs
+logs/
+
+# VS Code
+.vscode/
+
+# Cache files
+.cache/
+
+
+#-------NOSTRO--------------
 # === Python ===
 __pycache__
 *.py[cod]
@@ -23,13 +57,13 @@ MANIFEST
 .pytest_cache/
 .mypy_cache/
 .ipynb_checkpoints/
-
+ 
 # === Virtualenv ===
 venv/
 ENV/
 env/
 .venv/
-
+ 
 # === VS Code ===
 .vscode/
 !.vscode/settings.json
@@ -37,7 +71,7 @@ env/
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
-
+ 
 # === OS generici ===
 .DS_Store
 .DS_Store?
@@ -46,34 +80,18 @@ env/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+ 
 # === Jupyter Notebook ===
 *.ipynb
-
+ 
 # === Logs e database ===
 *.log
 *.sqlite
 *.db
-
+ 
 # === File di ambiente (env, dotenv) ===
 .env
 .venv
 env/
 venv/
 *.env
-
-old_csv
-metrics
-checkpoint
-best_model.pth
-gpu.err
-gpu.out
-gpu.err
-best_model_mix.pth
-best_model_only_turtle.pth
-__pycache__
-metrics*
-checkpoint*
-best_model_mix*
-best_model_only_turtle*
-best_model_turtle_only_full_clip.pth
