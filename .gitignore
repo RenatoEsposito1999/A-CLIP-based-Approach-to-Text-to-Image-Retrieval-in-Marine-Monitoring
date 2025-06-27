@@ -95,3 +95,8 @@ Thumbs.db
 env/
 venv/
 *.env
+
+COCO
+flickr30k_images
+Train_cropped
+checkpoint

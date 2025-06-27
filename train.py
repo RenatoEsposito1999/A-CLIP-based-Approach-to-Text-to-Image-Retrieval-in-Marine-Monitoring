@@ -17,7 +17,8 @@ from torchvision import transforms as T
 from transformers import AutoTokenizer
 
 from src.nanoclip import NanoCLIP
-from src.dataset import Flickr30k, CollateFlickr
+#from src.dataset import Flickr30k, CollateFlickr
+from src.custom_dataset import Custom_dataset, CollateFlickr
 
 
 def train(batch_size, lr, dim, dev):
@@ -66,8 +67,11 @@ def train(batch_size, lr, dim, dev):
     ])
 
     
-    train_dataset = Flickr30k('./datasets/flickr30k', split='train', img_transform=train_transform)
-    val_dataset = Flickr30k('./datasets/flickr30k', split='val', img_transform=valid_transform)
+    '''train_dataset = Flickr30k('./datasets/flickr30k', split='train', img_transform=train_transform)
+    val_dataset = Flickr30k('./datasets/flickr30k', split='val', img_transform=valid_transform)'''
+    
+    train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
+    val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
     
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
@@ -125,17 +129,11 @@ def train(batch_size, lr, dim, dev):
     
     trainer.fit(model, train_dataloader, val_dataloader)
 
-
-
-
-
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
     
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
-    parser.add_argument("--bs", type=int, default=128, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=512, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()

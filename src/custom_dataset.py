@@ -58,49 +58,54 @@ class Custom_dataset(Dataset):
         with open(annotations_turtle, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                self.captions_turtle[img_dir_turtle / image].append(caption)
+                if len(self.captions_turtle[img_dir_turtle / image]) < 5:
+                    self.captions_turtle[img_dir_turtle / image].append(caption)
         
         self.captions_COCO = defaultdict(list)
         
         with open(annotations_COCO, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                self.captions_COCO[img_dir_COCO / image].append(caption)
+                if len(self.captions_COCO[img_dir_COCO / image]) < 5:
+                    self.captions_COCO[img_dir_COCO / image].append(caption)
+                
                 
         # get all image names
-        self.imgs_flickr30 = random.shuffle(list(self.captions_flickr30.keys()))
-        self.imgs_turtle = random.shuffle(list(self.captions_turtle.keys()))
-        self.imgs_COCO = random.shuffle(list(self.captions_COCO.keys()))
+        self.imgs_flickr30 = list(self.captions_flickr30.keys())
+        random.shuffle(self.imgs_flickr30)
+        self.imgs_turtle = list(self.captions_turtle.keys())
+        random.shuffle(self.imgs_turtle)
+        self.imgs_COCO = list(self.captions_COCO.keys())
+        random.shuffle(self.imgs_COCO)
+        
         
         # split the dataset
         if split == 'train':
-            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs))]
-            self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs))]
-            self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs))]
+            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
+            self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
+            self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
         elif split == 'val':
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
-            self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
-            self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
+            self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
+            self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
         elif split == "test":
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs)) : ]
-            self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs)) : ]
-            self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs)) : ]
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
+            self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
+            self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs_COCO)) : ]
         else: # use all images
             pass
         
-        self.imgs = random.shuffle(self.imgs_flickr30 + self.imgs_turtle, self.imgs_COCO)
-        print(len(self.imgs))
+        self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_COCO
+        random.shuffle(self.imgs)
         self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle
-        print(len(self.captions))
-        exit()
         
-        
+
     def __len__(self):
         return len(self.imgs)
     
     def __getitem__(self, index):
         img_name = self.imgs[index]
-        img = Image.open(self.img_dir / img_name).convert('RGB')
+        img = Image.open(img_name).convert('RGB')
         if self.img_transform:
             img = self.img_transform(img)
 
@@ -136,6 +141,7 @@ class CollateFlickr:
         else:
             raise ValueError("captions_to_use should be one of 'all', 'first', 'random'")
         
+        
         # captions are either a list of strings or a list of list of strings
         captions_ids  = []
         masks = []
@@ -145,6 +151,8 @@ class CollateFlickr:
                 caps = [self.tokenizer(caption, padding='max_length', max_length=self.max_length, truncation=True, return_tensors="pt") for caption in caption_list]
                 captions_ids.append(torch.stack([caption['input_ids'].squeeze(0) for caption in caps]))
                 masks.append(torch.stack([caption['attention_mask'].squeeze(0) for caption in caps]))
+              
+            
             
             captions_ids = torch.stack(captions_ids)
             masks = torch.stack(masks)        

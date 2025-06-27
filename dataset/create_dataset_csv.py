@@ -185,20 +185,28 @@ class Annotations:
                 if item_img['id'] == item_annotations['image_id']:
                     self.img_list.append((item_img['file_name'], item_annotations['category_id']))
         random.shuffle(self.img_list)
+        idx = 0
+        for img in self.img_list:
+            if img[0] == "frame_054649.PNG":
+                idx = idx + 1
+        print(idx)
+        exit()
         return self.img_list
 
     def turtle_create_txt(self):
-        idx = 0
+        
         with open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='') as txt_file:
             txt_file.write("image_name, comment_number, comment\n")
             for img_name in self.img_list:
+                idx = 0
                 if img_name[1] == 1: #img with dolphine
                     dynamic_random = random.Random(time.time())
                     mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
                     sentence = generate_dolphine_sentence()
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
+                    for idx in range(5):
+                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                 
                     #self.store_category_info("dolphin")
                 if img_name[1] == 2: #img with turt == 2
@@ -207,7 +215,8 @@ class Annotations:
                     sentence = generate_positive_sentence()
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
+                    for idx in range(5):
+                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                 
                     #self.store_category_info("turtle")
                 if img_name[1] == 3: ## img with trash
@@ -216,7 +225,8 @@ class Annotations:
                     sentence = generate_negative_sentence(include_trash=True)
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
+                    for idx in range(5):
+                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                     
                     #self.store_category_info("debris")
                 elif img_name[1] == 4: #other area sea view
@@ -225,7 +235,8 @@ class Annotations:
                     sentence = generate_negative_sentence(include_trash=False)
                     if not mantain_templating and self.LLM:
                         sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    txt_file.write(f"{img_name[0]}, 0, {sentence}\n")
+                    for idx in range(5):
+                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                     
                 
                     #self.store_category_info("sea")
@@ -271,8 +282,7 @@ class Annotations:
                 # Per ogni caption nella lista, scrivi una riga nel file .txt
                 for i, caption in enumerate(captions):
                     # Formato: image_name, comment_number, comment
-                    caption = caption.strip("\n.")
-                    caption = caption.strip("\n")
+                    caption = caption.replace("\n", "")
                     txt_file.write(f"{file_name}, {i}, {caption}\n")
     
     def category_info(self):

@@ -1,0 +1,13 @@
+┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
+┃   ┃ Name        ┃ Type            ┃ Params ┃ Mode  ┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
+│ 0 │ img_encoder │ ImageEncoder    │ 22.1 M │ train │
+│ 1 │ txt_encoder │ TextEncoder     │ 22.7 M │ train │
+│ 2 │ loss_fn     │ ContrastiveLoss │      0 │ train │
+└───┴─────────────┴─────────────────┴────────┴───────┘
+Trainable params: 14.4 M                                                                                                                                     
+Non-trainable params: 30.4 M                                                                                                                                 
+Total params: 44.8 M                                                                                                                                         
+Total estimated model params size (MB): 179                                                                                                                  
+Modules in train mode: 204                                                                                                                                   
+Modules in eval mode: 120                                                                                                                                    
