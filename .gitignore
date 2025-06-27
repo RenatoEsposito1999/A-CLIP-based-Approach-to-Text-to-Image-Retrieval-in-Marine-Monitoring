@@ -20,10 +20,6 @@ deployment/*.pth
 # Ignore faiss index files in gallery folder
 gallery/*.faiss
 
-
-# Ignore all logs
-logs/
-
 # VS Code
 .vscode/
 
@@ -99,4 +95,4 @@ venv/
 COCO
 flickr30k_images
 Train_cropped
-checkpoint
+checkpoint*

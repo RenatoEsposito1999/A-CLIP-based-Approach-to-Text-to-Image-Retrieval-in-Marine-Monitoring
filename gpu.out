@@ -11,3 +11,5 @@ Total params: 44.8 M
 Total estimated model params size (MB): 179                                                                                                                  
 Modules in train mode: 204                                                                                                                                   
 Modules in eval mode: 120                                                                                                                                    
+Epoch 27/39 ━━━━━━━━━━━━━━━━━━━━                     77/151 0:01:19 • 0:01:13 1.02it/s v_num: 0.000 loss: 1.294 batch_acc: 0.666 recall@1: 0.369 recall@5:   
+                                                                                       0.596                                                                 
