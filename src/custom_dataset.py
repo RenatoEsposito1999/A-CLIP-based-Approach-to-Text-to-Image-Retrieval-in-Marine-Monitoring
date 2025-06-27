@@ -16,7 +16,7 @@ from PIL import Image
 import random
 
 
-class Flickr30k(Dataset):
+class Custom_dataset(Dataset):
     """ 
     This class is specific to the Flickr30k dataset downloaded from: https://www.kaggle.com/datasets/eeshawn/flickr30k
     The dataset is composed of images and captions.
@@ -26,7 +26,16 @@ class Flickr30k(Dataset):
     def __init__(self, base_path, split='train', img_transform=None, txt_transform=None):
         # make sur flickr30k_images folder exists in the base_path
         base_path = pathlib.Path(base_path)
-        img_dir = base_path / 'flickr30k_images'
+        img_dir = base_path / "images"
+        img_dir_flicker = img_dir / "flickr30k_images"
+        img_dir_COCO = img_dir / "COCO"
+        img_dir_turtle = img_dir / "Train_cropped"
+        
+        annotations_dir = base_path / "annotations"
+        annotations_flicker =  annotations_dir / "captions.txt"
+        annotations_COCO = annotations_dir / "COCO_with_category.txt"
+        annotations_turtle = annotations_dir / "cropped_marine_dataset.txt"
+        
         if not img_dir.exists():
             raise ValueError(f"Cannot find the flickr30k_images folder in {base_path}. Make sure to download the dataset.")
         
@@ -37,27 +46,55 @@ class Flickr30k(Dataset):
         self.split = split
         
         # load all captions
-        self.captions = defaultdict(list)
-        with open(base_path / 'captions.txt', 'r') as f:
+        self.captions_flickr30 = defaultdict(list)
+        
+        with open(annotations_flicker, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                self.captions[image].append(caption)
+                self.captions_flickr30[img_dir_flicker / image].append(caption)
+                
+        self.captions_turtle = defaultdict(list)
+                
+        with open(annotations_turtle, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                self.captions_turtle[img_dir_turtle / image].append(caption)
         
+        self.captions_COCO = defaultdict(list)
+        
+        with open(annotations_COCO, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                self.captions_COCO[img_dir_COCO / image].append(caption)
+                
         # get all image names
-        self.imgs = list(self.captions.keys())
-
+        self.imgs_flickr30 = random.shuffle(list(self.captions_flickr30.keys()))
+        self.imgs_turtle = random.shuffle(list(self.captions_turtle.keys()))
+        self.imgs_COCO = random.shuffle(list(self.captions_COCO.keys()))
+        
         # split the dataset
         if split == 'train':
-            self.imgs = self.imgs[ : int(0.8 * len(self.imgs))]
+            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs))]
+            self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs))]
+            self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs))]
         elif split == 'val':
-            self.imgs = self.imgs[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
+            self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
+            self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs)) : int(0.9 * len(self.imgs))]
         elif split == "test":
-            self.imgs = self.imgs[int(0.9 * len(self.imgs)) : ]
-            
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs)) : ]
+            self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs)) : ]
+            self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs)) : ]
         else: # use all images
             pass
-            
-    
+        
+        self.imgs = random.shuffle(self.imgs_flickr30 + self.imgs_turtle, self.imgs_COCO)
+        print(len(self.imgs))
+        self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle
+        print(len(self.captions))
+        exit()
+        
+        
     def __len__(self):
         return len(self.imgs)
     
