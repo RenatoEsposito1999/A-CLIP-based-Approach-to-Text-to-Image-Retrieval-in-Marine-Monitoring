@@ -145,4 +145,4 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()
     
-    train(batch_size=args.bs, lr=args.lr, dim=args.dim,  ckpt_path="/workspace/text-to-image-retrivial/logs/nano_clip/version_0/checkpoints/epoch=[19]_recall@5=[0.5979]].ckpt", dev=args.dev)
+    train(batch_size=args.bs, lr=args.lr, dim=args.dim, dev=args.dev)
