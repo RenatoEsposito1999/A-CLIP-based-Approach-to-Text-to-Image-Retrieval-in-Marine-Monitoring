@@ -13,8 +13,8 @@ COCO_TXT_PATH = "COCO_with_category.txt"
 CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_marine_dataset.txt"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
-COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/COCO/"
-DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/datasets/Train_cropped/"
+COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
+DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/datasets/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
 COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
 
@@ -271,6 +271,8 @@ class Annotations:
                 # Per ogni caption nella lista, scrivi una riga nel file .txt
                 for i, caption in enumerate(captions):
                     # Formato: image_name, comment_number, comment
+                    caption = caption.strip("\n.")
+                    caption = caption.strip("\n")
                     txt_file.write(f"{file_name}, {i}, {caption}\n")
     
     def category_info(self):
