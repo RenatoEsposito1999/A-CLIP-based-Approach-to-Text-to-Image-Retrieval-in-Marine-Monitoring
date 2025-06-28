@@ -113,6 +113,15 @@ def train(batch_size, lr, dim, dev):
         mode="max",
     )
     
+    epoch_checkpoint_cb = ModelCheckpoint(
+        filename="checkpoint",  # Formatta epoca e LR nel nome
+        auto_insert_metric_name=False,  # Disabilita l'aggiunta automatica delle metriche
+        save_weights_only=False,  # Salva solo i pesi (più leggero)
+        every_n_epochs=1,  # Salva ogni epoca
+        save_last=True,  # Salva sempre l'ultimo checkpoint (utile per il resume)
+        save_top_k=-1,  # Salva tutti i checkpoint
+    )
+    
     trainer = Trainer(
         accelerator="gpu",
         devices=[0],
@@ -121,17 +130,17 @@ def train(batch_size, lr, dim, dev):
         max_epochs=40,
         check_val_every_n_epoch=1,
         callbacks=[
-            checkpoint_cb,              # this callback saves the best model based on the metric we monitor (recall@5)
+            checkpoint_cb,# this callback saves the best model based on the metric we monitor (recall@5)
+            epoch_checkpoint_cb,
             RichProgressBar()           # comment this line if you want classic progress bar
         ],
-        
         log_every_n_steps=10,
         fast_dev_run=dev,
         enable_model_summary=True,
     )
     print("START TRAINING")
-    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
-    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
+    '''send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
+    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)'''
     trainer.fit(model, train_dataloader, val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)

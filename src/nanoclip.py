@@ -113,14 +113,15 @@ class NanoCLIP(L.LightningModule):
             
         img_descriptors, txt_descriptors = self(images, captions, masks)
         
+        
         if nb_captions > 1: # reshape back to (B, nb_captions, out_dim)
             txt_descriptors = txt_descriptors.view(B, nb_captions, -1)
         
         
         loss, batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors)
         
-        self.log("loss", loss, prog_bar=True, logger=True)
-        self.log("batch_acc", batch_accuracy, prog_bar=True, logger=True)
+        self.log("Train_loss", loss, prog_bar=True, logger=True)
+        self.log("Train_batch_acc", batch_accuracy, prog_bar=True, logger=True)
         return loss
     
     def on_validation_epoch_start(self):
@@ -133,6 +134,11 @@ class NanoCLIP(L.LightningModule):
         images, captions, masks = batch
         
         img_descriptors, txt_descriptors = self(images, captions, masks)
+        val_loss, val_batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors)
+        
+        self.log("Val_loss", val_loss, prog_bar=True, logger=True)
+        self.log("Val_batch_acc", val_batch_accuracy, prog_bar=True, logger=True)
+        
         img_descriptors = img_descriptors.detach().cpu().numpy()
         txt_descriptors = txt_descriptors.detach().cpu().numpy()
         
@@ -165,8 +171,17 @@ class NanoCLIP(L.LightningModule):
         Calculate the recall at k for the given img_descriptors as gallery
         and txt_descriptors as queries.
         """
+        #SE VUOI LA SIMILARITA' L2 DECOMMENTA QUESTE DUE LINEE DI CODICE E COMMENTA LE ALTRE DA faiss.normalize_L2 fino a faiss_index = faiss.IndexFlatIP(embed_size)
+        #embed_size = img_descriptors.shape[1]
+        #faiss_index = faiss.IndexFlatL2(embed_size)
+        
+        # Normalize the descriptors to unit length for cosine similarity
+        faiss.normalize_L2(img_descriptors)
+        faiss.normalize_L2(txt_descriptors)
+        
         embed_size = img_descriptors.shape[1]
-        faiss_index = faiss.IndexFlatL2(embed_size) 
+        # Use IndexFlatIP (Inner Product) for cosine similarity
+        faiss_index = faiss.IndexFlatIP(embed_size) 
         
         faiss_index.add(img_descriptors) # add images to the index
         _, predictions = faiss_index.search(txt_descriptors, max(k_values)) # search for the top k images for each text query

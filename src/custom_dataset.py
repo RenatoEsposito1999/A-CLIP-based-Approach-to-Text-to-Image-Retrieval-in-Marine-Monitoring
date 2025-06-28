@@ -95,6 +95,23 @@ class Custom_dataset(Dataset):
         else: # use all images
             pass
         
+        #SE VUOI FARE QUALCHE TEST CON POCHE IMMAGINI DECOMMENTA QUELLO CHE C'è SOTTO
+        '''# split the dataset
+        if split == 'train':
+            self.imgs_flickr30 = self.imgs_flickr30[:int(0.1 * len(self.imgs_flickr30))]
+            self.imgs_turtle = self.imgs_turtle[:int(0.1 * len(self.imgs_turtle))]
+            self.imgs_COCO = self.imgs_COCO[:int(0.1 * len(self.imgs_COCO))]
+        elif split == 'val':
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.1 * len(self.imgs_flickr30)):int(0.2 * len(self.imgs_flickr30))]
+            self.imgs_turtle = self.imgs_turtle[int(0.1 * len(self.imgs_turtle)):int(0.2 * len(self.imgs_turtle))]
+            self.imgs_COCO = self.imgs_COCO[int(0.1 * len(self.imgs_COCO)):int(0.2 * len(self.imgs_COCO))]
+        elif split == "test":
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.2 * len(self.imgs_flickr30)):]
+            self.imgs_turtle = self.imgs_turtle[int(0.2 * len(self.imgs_turtle)):]
+            self.imgs_COCO = self.imgs_COCO[int(0.2 * len(self.imgs_COCO)):]
+        else:  # use all images
+            pass'''
+        
         self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_COCO
         random.shuffle(self.imgs)
         self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle
