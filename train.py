@@ -127,7 +127,7 @@ def train(batch_size, lr, dim, dev):
         devices=[0],
         logger=tensorboard_logger,      # comment this line if you don't want to use tensorboard logger
         precision="16-mixed",
-        max_epochs=40,
+        max_epochs=50,
         check_val_every_n_epoch=1,
         callbacks=[
             checkpoint_cb,# this callback saves the best model based on the metric we monitor (recall@5)
@@ -139,8 +139,8 @@ def train(batch_size, lr, dim, dev):
         enable_model_summary=True,
     )
     print("START TRAINING")
-    '''send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
-    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)'''
+    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
+    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
     trainer.fit(model, train_dataloader, val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
