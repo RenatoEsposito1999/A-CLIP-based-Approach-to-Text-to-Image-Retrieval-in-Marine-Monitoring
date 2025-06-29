@@ -49,6 +49,9 @@ class Custom_dataset(Dataset):
         self.split = split
         
         # load all captions
+        '''
+            for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
+        '''
         self.captions_flickr30 = defaultdict(list)
         
         with open(annotations_flicker, 'r') as f:
