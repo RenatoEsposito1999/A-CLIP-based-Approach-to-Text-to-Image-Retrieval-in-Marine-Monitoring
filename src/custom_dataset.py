@@ -168,7 +168,7 @@ class Custom_dataset(Dataset):
     def __getitem__(self, index):
         img_name = self.imgs[index]
         flag = 0
-        if "cropped_" in img_name:
+        if "cropped_" in str(img_name):
             flag = 1 
         img = Image.open(img_name).convert('RGB')
         if self.img_transform:
@@ -196,7 +196,7 @@ class CollateFlickr:
     def __call__(self, batch):
         images, captions, flag = zip(*batch)
         images = torch.stack(images)
-        flag = torch.stack(flag)
+        flag = torch.tensor(flag)
         if self.captions_to_use == 'first':
             captions = [caption[0] for caption in captions]
         elif self.captions_to_use == 'random':
