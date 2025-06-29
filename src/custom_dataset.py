@@ -167,6 +167,9 @@ class Custom_dataset(Dataset):
     
     def __getitem__(self, index):
         img_name = self.imgs[index]
+        flag = 0
+        if "cropped_" in img_name:
+            flag = 1 
         img = Image.open(img_name).convert('RGB')
         if self.img_transform:
             img = self.img_transform(img)
@@ -174,7 +177,7 @@ class Custom_dataset(Dataset):
         captions = self.captions[img_name]
         if self.txt_transform:
             captions = [self.txt_transform(caption) for caption in captions]
-        return img, captions
+        return img, captions, flag
     
 
 class CollateFlickr:
@@ -191,9 +194,9 @@ class CollateFlickr:
         self.captions_to_use = captions_to_use
         
     def __call__(self, batch):
-        images, captions = zip(*batch)
+        images, captions, flag = zip(*batch)
         images = torch.stack(images)
-        
+        flag = torch.stack(flag)
         if self.captions_to_use == 'first':
             captions = [caption[0] for caption in captions]
         elif self.captions_to_use == 'random':
@@ -224,4 +227,4 @@ class CollateFlickr:
             captions_ids = captions['input_ids'].squeeze(0)
             masks = captions['attention_mask'].squeeze(0)
         
-        return images, captions_ids, masks
+        return images, captions_ids, masks, flag

@@ -101,7 +101,7 @@ class NanoCLIP(L.LightningModule):
                        ├──► ContrastiveLoss   
         TextEncoder  ──┘
         """
-        images, captions, masks = batch
+        images, captions, masks, flag = batch
         
         if len(captions.shape) == 3: # flatten captions to (batch_size*nb_caps, cap_len) cuz we have multiple captions per image
             B, nb_captions, cap_len = captions.shape
@@ -125,13 +125,13 @@ class NanoCLIP(L.LightningModule):
         return loss
     
     def on_validation_epoch_start(self):
-        self.validation_descriptors = {"img": [], "txt": []}
+        self.validation_descriptors = {"img": [], "txt": [], "flag": []}
         
     def validation_step(self, batch, batch_idx):
         """ 
         Define a single validation step (one batch pass).
         """
-        images, captions, masks = batch
+        images, captions, masks, flag = batch
         
         img_descriptors, txt_descriptors = self(images, captions, masks)
         val_loss, val_batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors)
@@ -141,9 +141,11 @@ class NanoCLIP(L.LightningModule):
         
         img_descriptors = img_descriptors.detach().cpu().numpy()
         txt_descriptors = txt_descriptors.detach().cpu().numpy()
+        flag = flag.detach().cpu().numpy()
         
         self.validation_descriptors["img"].append(img_descriptors)
         self.validation_descriptors["txt"].append(txt_descriptors)
+        self.validation_descriptors["flag"].append(flag)
     
     def on_validation_epoch_end(self):
         """ 
@@ -151,21 +153,29 @@ class NanoCLIP(L.LightningModule):
         """
         img_descriptors = np.concatenate(self.validation_descriptors["img"], axis=0) # (N, out_dim)
         txt_descriptors = np.concatenate(self.validation_descriptors["txt"], axis=0) # (N, out_dim)
+        flag_descriptors = np.concatenate(self.validation_descriptors["flag"], axis=0)
         
         # create dummy labels
         B = img_descriptors.shape[0]    
         labels = np.arange(B)
 
         # use faiss to calculate recall, images are gallery and texts are queries
-        recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
-        self.log("recall@1", recall_1, prog_bar=True, logger=True)
-        self.log("recall@5", recall_5, prog_bar=True, logger=True)
-        self.log("recall@10", recall_10, prog_bar=False, logger=True)
+        #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
+        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        recall_1_all, recall_5_all, recall_10_all = recall_list_all
+        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
+        self.log("all_recall@1", recall_1_all, prog_bar=True, logger=True)
+        self.log("all_recall@5", recall_5_all, prog_bar=True, logger=True)
+        self.log("all_recall@10", recall_10_all, prog_bar=False, logger=True)
+        
+        self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
+        self.log("turtle_recall@5", recall_5_turtle, prog_bar=True, logger=True)
+        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)
 
         # clear the validation descriptors for the next epoch
         self.validation_descriptors.clear()
     
-    @staticmethod
+    '''@staticmethod
     def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10]):
         """ 
         Calculate the recall at k for the given img_descriptors as gallery
@@ -196,4 +206,46 @@ class NanoCLIP(L.LightningModule):
         
         correct_at_k /= len(labels)
                 
-        return correct_at_k
+        return correct_at_k'''
+        
+        
+    @staticmethod
+    def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=None):
+        """ 
+        Calculate the recall at k for the given img_descriptors as gallery
+        and txt_descriptors as queries.
+        """
+        #SE VUOI LA SIMILARITA' L2 DECOMMENTA QUESTE DUE LINEE DI CODICE E COMMENTA LE ALTRE DA faiss.normalize_L2 fino a faiss_index = faiss.IndexFlatIP(embed_size)
+        #embed_size = img_descriptors.shape[1]
+        #faiss_index = faiss.IndexFlatL2(embed_size)
+        
+        # Normalize for cosine similarity
+        faiss.normalize_L2(img_descriptors)
+        faiss.normalize_L2(txt_descriptors)
+
+        embed_size = img_descriptors.shape[1]
+        faiss_index = faiss.IndexFlatIP(embed_size)
+        faiss_index.add(img_descriptors)
+
+        _, predictions = faiss_index.search(txt_descriptors, max(k_values))
+
+        correct_at_k_all = np.zeros(len(k_values))
+        correct_at_k_flagged = np.zeros(len(k_values))
+
+        relevant_indices = np.where(flags == 1)[0]
+
+        for q_idx, pred in enumerate(predictions):
+            for i, n in enumerate(k_values):
+                if np.any(np.in1d(pred[:n], labels[q_idx])):
+                    correct_at_k_all[i:] += 1
+                    if q_idx in relevant_indices:
+                        correct_at_k_flagged[i:] += 1
+                    break
+
+        correct_at_k_all /= len(labels)
+        if len(relevant_indices) > 0:
+            correct_at_k_flagged /= len(relevant_indices)
+        else:
+            correct_at_k_flagged[:] = 0.0
+
+        return correct_at_k_all, correct_at_k_flagged
