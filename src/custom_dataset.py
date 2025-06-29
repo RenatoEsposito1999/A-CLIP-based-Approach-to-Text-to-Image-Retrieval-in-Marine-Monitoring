@@ -34,7 +34,10 @@ class Custom_dataset(Dataset):
         annotations_dir = base_path / "annotations"
         annotations_flicker =  annotations_dir / "captions.txt"
         annotations_COCO = annotations_dir / "COCO_with_category.txt"
-        annotations_turtle = annotations_dir / "cropped_marine_dataset.txt"
+        annotations_turtle = annotations_dir / "cropped_turtle.txt"
+        annotations_debris = annotations_dir / "cropped_debris.txt"
+        annotations_sea = annotations_dir / "cropped_sea.txt"
+        annotations_dolphine = annotations_dir / "cropped_dolphine.txt"
         
         if not img_dir.exists():
             raise ValueError(f"Cannot find the flickr30k_images folder in {base_path}. Make sure to download the dataset.")
@@ -60,6 +63,30 @@ class Custom_dataset(Dataset):
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_turtle[img_dir_turtle / image]) < 5:
                     self.captions_turtle[img_dir_turtle / image].append(caption)
+                    
+        self.captions_debris = defaultdict(list)
+                
+        with open(annotations_debris, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                if len(self.captions_debris[img_dir_turtle / image]) < 5:
+                    self.captions_debris[img_dir_turtle / image].append(caption)
+                    
+        self.captions_sea = defaultdict(list)
+                
+        with open(annotations_sea, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                if len(self.captions_sea[img_dir_turtle / image]) < 5:
+                    self.captions_sea[img_dir_turtle / image].append(caption)
+                    
+        self.captions_dolphine = defaultdict(list)
+                
+        with open(annotations_dolphine, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                if len(self.captions_dolphine[img_dir_turtle / image]) < 5:
+                    self.captions_dolphine[img_dir_turtle / image].append(caption)
         
         self.captions_COCO = defaultdict(list)
         
@@ -75,6 +102,12 @@ class Custom_dataset(Dataset):
         random.shuffle(self.imgs_flickr30)
         self.imgs_turtle = list(self.captions_turtle.keys())
         random.shuffle(self.imgs_turtle)
+        self.imgs_debris = list(self.captions_debris.keys())
+        random.shuffle(self.imgs_debris)
+        self.imgs_sea = list(self.captions_sea.keys())
+        random.shuffle(self.imgs_sea)
+        self.imgs_dolphine = list(self.captions_dolphine.keys())
+        random.shuffle(self.imgs_dolphine)
         self.imgs_COCO = list(self.captions_COCO.keys())
         random.shuffle(self.imgs_COCO)
         
@@ -83,14 +116,23 @@ class Custom_dataset(Dataset):
         if split == 'train':
             self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
+            self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
+            self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
+            self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
         elif split == 'val':
             self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
+            self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
+            self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
+            self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
         elif split == "test":
             self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
+            self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
+            self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
+            self.imgs_dolphine = self.imgs_dolphine[int(0.9 * len(self.imgs_dolphine)) : ]
             self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs_COCO)) : ]
         else: # use all images
             pass
@@ -112,9 +154,9 @@ class Custom_dataset(Dataset):
         else:  # use all images
             pass'''
         
-        self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_COCO
+        self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
-        self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle
+        self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
 
     def __len__(self):

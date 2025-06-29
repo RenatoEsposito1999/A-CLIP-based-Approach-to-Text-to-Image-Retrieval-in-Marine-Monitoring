@@ -10,7 +10,10 @@ from pycocotools.coco import COCO
 import os
 
 COCO_TXT_PATH = "COCO_with_category.txt"
-CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_marine_dataset.txt"
+CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_turtle.txt"
+CROPPED_DEBRIS_TXT_PATH = "cropped_debris.txt"
+CROPPED_DOLPHINE_TXT_PATH = "cropped_dolphine.txt"
+CROPPED_SEA_TXT_PATH = "cropped_sea.txt"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
 COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
@@ -189,57 +192,62 @@ class Annotations:
         for img in self.img_list:
             if img[0] == "frame_054649.PNG":
                 idx = idx + 1
-        print(idx)
-        exit()
         return self.img_list
 
     def turtle_create_txt(self):
-        
-        with open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='') as txt_file:
-            txt_file.write("image_name, comment_number, comment\n")
-            for img_name in self.img_list:
-                idx = 0
-                if img_name[1] == 1: #img with dolphine
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_dolphine_sentence()
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    for idx in range(5):
-                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
+        turtle_txt = open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='')
+        debris_txt = open(CROPPED_DEBRIS_TXT_PATH,'w', newline='')
+        dolphine_txt = open(CROPPED_DOLPHINE_TXT_PATH,'w', newline='')
+        sea_txt = open(CROPPED_SEA_TXT_PATH,'w', newline='')
+        turtle_txt.write("image_name, comment_number, comment\n")
+        debris_txt.write("image_name, comment_number, comment\n")
+        dolphine_txt.write("image_name, comment_number, comment\n")
+        sea_txt.write("image_name, comment_number, comment\n")
+        for img_name in self.img_list:
+            idx = 0
+            if img_name[1] == 1: #img with dolphine
+                dynamic_random = random.Random(time.time())
+                mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                sentence = generate_dolphine_sentence()
+                if not mantain_templating and self.LLM:
+                    sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                for idx in range(5):
+                    dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                 
-                    #self.store_category_info("dolphin")
-                if img_name[1] == 2: #img with turt == 2
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_positive_sentence()
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    for idx in range(5):
-                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
+                #self.store_category_info("dolphin")
+            if img_name[1] == 2: #img with turt == 2
+                dynamic_random = random.Random(time.time())
+                mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                sentence = generate_positive_sentence()
+                if not mantain_templating and self.LLM:
+                    sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                for idx in range(5):
+                    turtle_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                 
-                    #self.store_category_info("turtle")
-                if img_name[1] == 3: ## img with trash
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_negative_sentence(include_trash=True)
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    for idx in range(5):
-                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
+                #self.store_category_info("turtle")
+            if img_name[1] == 3: ## img with trash
+                dynamic_random = random.Random(time.time())
+                mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                sentence = generate_negative_sentence(include_trash=True)
+                if not mantain_templating and self.LLM:
+                    sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                for idx in range(5):
+                    debris_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
                     
-                    #self.store_category_info("debris")
-                elif img_name[1] == 4: #other area sea view
-                    dynamic_random = random.Random(time.time())
-                    mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
-                    sentence = generate_negative_sentence(include_trash=False)
-                    if not mantain_templating and self.LLM:
-                        sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                    for idx in range(5):
-                        txt_file.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
-                    
-                
-                    #self.store_category_info("sea")
+                #self.store_category_info("debris")
+            elif img_name[1] == 4: #other area sea view
+                dynamic_random = random.Random(time.time())
+                mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                sentence = generate_negative_sentence(include_trash=False)
+                if not mantain_templating and self.LLM:
+                    sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                for idx in range(5):
+                    sea_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
+                #self.store_category_info("sea")
+        debris_txt.close()
+        sea_txt.close()
+        turtle_txt.close()
+        dolphine_txt.close()
 
     def store_category_info(self,category):
         if category in self.category:
