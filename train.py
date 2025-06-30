@@ -18,7 +18,7 @@ from transformers import AutoTokenizer
 
 from src.nanoclip import NanoCLIP
 #from src.dataset import Flickr30k, CollateFlickr
-from src.custom_dataset import Custom_dataset, CollateFlickr
+from src.custom_dataset_with_category import Custom_dataset, CollateFlickr
 from custom_utils.telegram_notification import send_telegram_notification
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
@@ -87,6 +87,9 @@ def train(batch_size, lr, dim, dev):
         collate_fn=CollateFlickr(tokenizer, max_length=80, captions_to_use='all') # captions_to_use='random' or 'first' or 'all'
     )
     
+   
+    
+    
     val_dataloader = DataLoader(
         val_dataset, 
         batch_size=batch_size, 
@@ -105,8 +108,8 @@ def train(batch_size, lr, dim, dev):
     )
     
     checkpoint_cb = ModelCheckpoint(
-        monitor="recall@5",
-        filename="epoch=[{epoch:02d}]_recall@5=[{recall@5:.4f}]]",
+        monitor="all_recall@5",
+        filename="epoch=[{epoch:02d}]_recall@5=[{all_recall@5:.4f}]]",
         auto_insert_metric_name=False,
         save_weights_only=True,
         save_top_k=1,
@@ -139,8 +142,8 @@ def train(batch_size, lr, dim, dev):
         enable_model_summary=True,
     )
     print("START TRAINING")
-    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
-    send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
+    #send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
+    #send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)
     trainer.fit(model, train_dataloader, val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
@@ -149,7 +152,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
     
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
-    parser.add_argument("--bs", type=int, default=512, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=15, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()

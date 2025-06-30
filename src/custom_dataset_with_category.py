@@ -52,53 +52,67 @@ class Custom_dataset(Dataset):
         '''
             for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
         '''
-        self.captions_flickr30 = defaultdict(list)
+        self.captions_flickr30 = defaultdict(lambda: [[], []])
         
         with open(annotations_flicker, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                self.captions_flickr30[img_dir_flicker / image].append(caption)
+                self.captions_flickr30[img_dir_flicker / image][0].append(caption)
+                if len(self.captions_flickr30[img_dir_flicker / image][1])==0:
+                    self.captions_flickr30[img_dir_flicker / image][1].append(0)
         
                 
-        self.captions_turtle = defaultdict(list)
+        self.captions_turtle = defaultdict(lambda: [[], []])
                 
         with open(annotations_turtle, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                if len(self.captions_turtle[img_dir_turtle / image]) < 5:
-                    self.captions_turtle[img_dir_turtle / image].append(caption)
+                if len(self.captions_turtle[img_dir_turtle / image][0]) < 5:
+                    self.captions_turtle[img_dir_turtle / image][0].append(caption)
+                    if len(self.captions_turtle[img_dir_turtle / image][1])==0:
+                        self.captions_turtle[img_dir_turtle / image][1].append(-1)
                     
-        self.captions_debris = defaultdict(list)
+                    
+        self.captions_debris = defaultdict(lambda: [[], []])
                 
         with open(annotations_debris, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                if len(self.captions_debris[img_dir_turtle / image]) < 5:
-                    self.captions_debris[img_dir_turtle / image].append(caption)
+                if len(self.captions_debris[img_dir_turtle / image][0]) < 5:
+                    self.captions_debris[img_dir_turtle / image][0].append(caption)
+                    if len(self.captions_debris[img_dir_turtle / image][1]) == 0:
+                        self.captions_debris[img_dir_turtle / image][1].append(-2)
                     
-        self.captions_sea = defaultdict(list)
+        self.captions_sea = defaultdict(lambda: [[], []])
                 
         with open(annotations_sea, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                if len(self.captions_sea[img_dir_turtle / image]) < 5:
-                    self.captions_sea[img_dir_turtle / image].append(caption)
+                if len(self.captions_sea[img_dir_turtle / image][0]) < 5:
+                    self.captions_sea[img_dir_turtle / image][0].append(caption)
+                    if len(self.captions_sea[img_dir_turtle / image][1]) == 0:
+                        self.captions_sea[img_dir_turtle / image][1].append(-3)
+                
                     
-        self.captions_dolphine = defaultdict(list)
+        self.captions_dolphine = defaultdict(lambda: [[], []])
                 
         with open(annotations_dolphine, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                if len(self.captions_dolphine[img_dir_turtle / image]) < 5:
-                    self.captions_dolphine[img_dir_turtle / image].append(caption)
+                if len(self.captions_dolphine[img_dir_turtle / image][0]) < 5:
+                    self.captions_dolphine[img_dir_turtle / image][0].append(caption)
+                    if len(self.captions_dolphine[img_dir_turtle / image][1]) == 0:
+                        self.captions_dolphine[img_dir_turtle / image][1].append(-4)
         
-        self.captions_COCO = defaultdict(list)
+        self.captions_COCO = defaultdict(lambda: [[], []])
         
         with open(annotations_COCO, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                if len(self.captions_COCO[img_dir_COCO / image]) < 5:
-                    self.captions_COCO[img_dir_COCO / image].append(caption)
+                if len(self.captions_COCO[img_dir_COCO / image][0]) < 5:
+                    self.captions_COCO[img_dir_COCO / image][0].append(caption)
+                    if len(self.captions_COCO[img_dir_COCO / image][1])==0:
+                        self.captions_COCO[img_dir_COCO / image][1].append(0)
                 
                 
         # get all image names
@@ -162,20 +176,20 @@ class Custom_dataset(Dataset):
         random.shuffle(self.imgs)
         self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
+        
 
     def __len__(self):
         return len(self.imgs)
     
     def __getitem__(self, index):
         img_name = self.imgs[index]
-        flag = 0
-        if "cropped_" in str(img_name):
-            flag = 1 
         img = Image.open(img_name).convert('RGB')
         if self.img_transform:
             img = self.img_transform(img)
-
-        captions = self.captions[img_name]
+        captions = self.captions[img_name][0]
+     
+        category = self.captions[img_name][1]
+        flag = category[0]
         if self.txt_transform:
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, flag

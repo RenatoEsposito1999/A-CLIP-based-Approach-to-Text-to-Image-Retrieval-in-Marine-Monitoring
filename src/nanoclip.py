@@ -11,7 +11,8 @@ import torch.nn.functional as F
 import faiss
 import numpy as np
 import lightning as L
-from src.loss import ContrastiveLoss
+#from src.loss import ContrastiveLoss
+from src.loss_multi_positive_turtle import ContrastiveLoss
 from src.models import ImageEncoder, TextEncoder
 
 
@@ -102,6 +103,7 @@ class NanoCLIP(L.LightningModule):
         TextEncoder  ──┘
         """
         images, captions, masks, flag = batch
+      
         
         if len(captions.shape) == 3: # flatten captions to (batch_size*nb_caps, cap_len) cuz we have multiple captions per image
             B, nb_captions, cap_len = captions.shape
@@ -118,7 +120,8 @@ class NanoCLIP(L.LightningModule):
             txt_descriptors = txt_descriptors.view(B, nb_captions, -1)
         
         
-        loss, batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors)
+        loss, batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors, flag)
+        
         
         self.log("Train_loss", loss, prog_bar=True, logger=True)
         self.log("Train_batch_acc", batch_accuracy, prog_bar=True, logger=True)
@@ -131,10 +134,11 @@ class NanoCLIP(L.LightningModule):
         """ 
         Define a single validation step (one batch pass).
         """
+        print("STARTING VALIDATION")
         images, captions, masks, flag = batch
         
         img_descriptors, txt_descriptors = self(images, captions, masks)
-        val_loss, val_batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors)
+        val_loss, val_batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors, flag)
         
         self.log("Val_loss", val_loss, prog_bar=True, logger=True)
         self.log("Val_batch_acc", val_batch_accuracy, prog_bar=True, logger=True)
@@ -161,16 +165,17 @@ class NanoCLIP(L.LightningModule):
 
         # use faiss to calculate recall, images are gallery and texts are queries
         #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
-        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        #recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        recall_list_all, recall_list_turtle = self.compute_recall_exact_only(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
         recall_1_all, recall_5_all, recall_10_all = recall_list_all
-        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
+        #recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
         self.log("all_recall@1", recall_1_all, prog_bar=True, logger=True)
         self.log("all_recall@5", recall_5_all, prog_bar=True, logger=True)
         self.log("all_recall@10", recall_10_all, prog_bar=False, logger=True)
         
-        self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
+        '''self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
         self.log("turtle_recall@5", recall_5_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)
+        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)'''
 
         # clear the validation descriptors for the next epoch
         self.validation_descriptors.clear()
@@ -249,3 +254,43 @@ class NanoCLIP(L.LightningModule):
             correct_at_k_flagged[:] = 0.0
 
         return correct_at_k_all, correct_at_k_flagged
+    
+    @staticmethod
+    def compute_recall_exact_only(img_descriptors, txt_descriptors, labels,k_values=[1,5,10], flags=None):
+        faiss.normalize_L2(img_descriptors)
+        faiss.normalize_L2(txt_descriptors)
+
+        embed_size = img_descriptors.shape[1]
+        faiss_index = faiss.IndexFlatIP(embed_size)
+        faiss_index.add(img_descriptors)
+
+        _, predictions = faiss_index.search(txt_descriptors, max(k_values))
+
+        correct_at_k = np.zeros(len(k_values))
+        per_class_recall = {cat: np.zeros(len(k_values)) for cat in [-1, -2, -3, -4, 0]}
+        per_class_counts = {cat: 0 for cat in [-1, -2, -3, -4, 0]}
+
+        for q_idx, pred in enumerate(predictions):
+            gt_label = labels[q_idx]
+            cat_flag = flags[q_idx]
+            per_class_counts[cat_flag] += 1
+
+            # Ricostruisci predizione con stesso-flag messi in fondo (ma non il gt)
+            same_flag_indices = np.where(flags == cat_flag)[0]
+            same_flag_indices = same_flag_indices[same_flag_indices != gt_label]
+
+            pred_filtered = [idx for idx in pred if idx not in same_flag_indices]
+            pred_filtered += [idx for idx in pred if idx in same_flag_indices]  # same-class at the end
+
+            for i, n in enumerate(k_values):
+                if gt_label in pred_filtered[:n]:
+                    correct_at_k[i:] += 1
+                    per_class_recall[cat_flag][i:] += 1
+                    break
+
+        correct_at_k /= len(labels)
+        for cat in per_class_recall:
+            if per_class_counts[cat] > 0:
+                per_class_recall[cat] /= per_class_counts[cat]
+
+        return correct_at_k, per_class_recall
