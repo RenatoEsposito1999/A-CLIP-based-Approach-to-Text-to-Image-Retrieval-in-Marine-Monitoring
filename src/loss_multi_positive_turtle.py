@@ -41,10 +41,6 @@ class ContrastiveLoss(nn.Module):
                 rows_all_inf = torch.isinf(logits).all(dim=1)
                 if rows_all_inf.any():
                     print("Attenzione: alcune righe di logits sono tutte -inf")
-
-
-                
-
                 # contrastive losses
                 loss_i2t = F.cross_entropy(logits, labels)
                 loss_t2i = F.cross_entropy(logits.T, labels)
@@ -57,9 +53,11 @@ class ContrastiveLoss(nn.Module):
             logits = torch.matmul(image_embedding, text_embedding.T) / self.temperature
             flag_i = flag.view(-1, 1)
             same_class = (flag_i == flag_i.T)
-            mask = same_class & (flag_i != 0)
-            logits = logits.masked_fill(mask, float('-inf'))
-
+            mask[torch.arange(batch_size), labels] = False     
+            logits = logits.masked_fill(mask, float('-inf'))   
+            rows_all_inf = torch.isinf(logits).all(dim=1)
+            if rows_all_inf.any():
+                print("Attenzione: alcune righe di logits sono tutte -inf")
             loss_i2t = F.cross_entropy(logits, labels)
             loss_t2i = F.cross_entropy(logits.T, labels)
             total_loss = (loss_i2t + loss_t2i) / 2
