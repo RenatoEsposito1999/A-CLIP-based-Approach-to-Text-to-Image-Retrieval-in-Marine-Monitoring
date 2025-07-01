@@ -14,13 +14,14 @@ CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_turtle.txt"
 CROPPED_DEBRIS_TXT_PATH = "cropped_debris.txt"
 CROPPED_DOLPHINE_TXT_PATH = "cropped_dolphine.txt"
 CROPPED_SEA_TXT_PATH = "cropped_sea.txt"
+OTHER_TURTLE_TXT_PATH = "turtle_other.txt"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
 COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
 DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/datasets/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
 COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
-OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/turtle/turtles-data/data/images"
+OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/"
 
 '''DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
 COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
@@ -57,13 +58,13 @@ class Annotations:
         self.LLM = None #self.LLM = LLM()
         
         #CREATE POSITIVE TURTLE CSV
-        self.turtle_create_txt()
+        #self.turtle_create_txt()
         
         #CREATE NEGATIVE COCO CSV
-        self.COCO_create_txt()
+        #self.COCO_create_txt()
         #CREATE TRAINING, VALIDATION AND TEST SET
-        self.split_2_txt(file1=CROPPED_TURTLE_POSITIVE_TXT_PATH,file2=COCO_TXT_PATH)
-        #self.split_1_csv(file1=CROPPED_TURTLE_POSITIVE_CSV_PATH)
+        #self.split_2_txt(file1=CROPPED_TURTLE_POSITIVE_TXT_PATH,file2=COCO_TXT_PATH)
+        self.create_txt_other_turtle()
         #self.category_info()
 
     def build_category_json(self):
@@ -71,43 +72,7 @@ class Annotations:
             json.dump(self.category,file_json, indent=2)
 
 
-    '''def split_1_csv(self,file1, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, random_state=None):
-        """
-        Split a CSV file into train, validation, and test sets (default: 80/10/10).
-        
-        Args:
-            file1 (str): Path to the input CSV file.
-            train_ratio (float): Proportion for training set (default: 0.8).
-            val_ratio (float): Proportion for validation set (default: 0.1).
-            test_ratio (float): Proportion for test set (default: 0.1).
-            random_state (int): Seed for reproducibility (optional).
-        
-        Returns:
-            None (saves train.csv, val.csv, test.csv in the same directory).
-        """
-        # Read the input CSV
-        df = pd.read_csv(file1)
-        
-        # Shuffle the dataset (optional, but recommended)
-        df = df.sample(frac=1, random_state=random_state).reset_index(drop=True)
-        
-        # Calculate split indices
-        train_end = int(len(df) * train_ratio)
-        val_end = train_end + int(len(df) * val_ratio)
-        
-        # Split into train, val, test
-        train_df = df.iloc[:train_end]
-        val_df = df.iloc[train_end:val_end]
-        test_df = df.iloc[val_end:]
-        
-        # Save to CSV (same directory as input file)
-        output_dir = "/".join(file1.split("/")[:-1]) if "/" in file1 else "."
-        train_df.to_csv(f"{output_dir}/training.csv", index=False)
-        val_df.to_csv(f"{output_dir}/val.csv", index=False)
-        test_df.to_csv(f"{output_dir}/test.csv", index=False)
-        
-        print(f"Split completed: {len(train_df)} train, {len(val_df)} val, {len(test_df)} test samples.")'''
-
+    
     def split_2_txt(self, file1, file2, output_prefix='', random_state=None):
         """
         Divide due file TXT in training (80%), validation (10%) e test (10%) set.
@@ -177,7 +142,8 @@ class Annotations:
 
     # Esempio di utilizzo:
     # split_csv('file1.csv', 'file2.csv', random_state=42)
-
+    def create_txt_other_turtle(self):
+        
     
     def extract_img(self):
         with open(DATASET_ANNOTATIONS_PATH) as file_json:
@@ -305,23 +271,6 @@ class Annotations:
 
 
 
-def build_val_only_turtle(file1, file2, n_rows):
-        df1 = pd.read_csv(file1)
-        df1 = df1.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
-
-        if not os.path.exists(file2):
-            df2 = pd.DataFrame(columns=df1.columns)
-        else:
-            df2 = pd.read_csv(file2)
-        
-        rows = df1.head(n_rows)
-        
-        df2 = pd.concat([df2, rows], ignore_index=True)
-        
-        df2.to_csv(file2, index=False)
-    
-        
-#build_val_only_turtle(file1="cropped_marine_dataset.csv", file2="only_turtle_val.csv", n_rows=5000)
 dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
 '''
