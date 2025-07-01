@@ -75,7 +75,7 @@ def train(batch_size, lr, dim, dev):
     train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
     print("val dataset")
     val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
-    exit()
+    
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
 
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
     
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
-    parser.add_argument("--bs", type=int, default=512, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=256, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()
