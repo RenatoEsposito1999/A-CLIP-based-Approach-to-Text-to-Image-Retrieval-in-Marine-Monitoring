@@ -76,7 +76,7 @@ def train(batch_size, lr, dim, dev):
     train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
     print("val dataset")
     val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
-    
+    exit()
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
 

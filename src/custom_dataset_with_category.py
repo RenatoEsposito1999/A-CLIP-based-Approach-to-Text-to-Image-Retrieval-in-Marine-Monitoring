@@ -70,9 +70,12 @@ class Custom_dataset(Dataset):
         self.df = pd.read_csv(annotations_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            self.captions_turtle[mg_dir_turtle / image].append(caption)
-            print(image)
-            exit()
+            self.captions_turtle[img_dir_turtle / image].append(caption)
+        
+        self.df = pd.read_csv(annotations_other_turtle)
+        for idx,row in self.df.iterrows():
+            image, comment_number, caption, category = row
+            self.captions_turtle[img_dir_other_turtle / image].append(caption)
         '''with open(annotations_turtle, 'r') as f:
             self.df = pd.read_csv(annotations_turtle)
             for line in f.readlines()[1:]: # ignore the header (first line)
@@ -82,62 +85,74 @@ class Custom_dataset(Dataset):
                     if len(self.captions_turtle[img_dir_turtle / image][1])==0:
                         self.captions_turtle[img_dir_turtle / image][1].append(-1)'''
                         
-        with open(annotations_other_turtle, 'r') as f:
+        '''with open(annotations_other_turtle, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_turtle[img_dir_other_turtle / image][0]) < 5:
                     self.captions_turtle[img_dir_other_turtle / image][0].append(caption)
                     if len(self.captions_turtle[img_dir_other_turtle / image][1])==0:
-                        self.captions_turtle[img_dir_other_turtle / image][1].append(-1)
+                        self.captions_turtle[img_dir_other_turtle / image][1].append(-1)'''
         
         #START TO INSERT DEBRIS          
-        self.captions_debris = defaultdict(lambda: [[], []])
-                
-        with open(annotations_debris, 'r') as f:
+        self.captions_debris = defaultdict(list)
+        self.df = pd.read_csv(annotations_debris)
+        for idx,row in self.df.iterrows():
+            image, comment_number, caption, category = row
+            self.captions_debris[img_dir_turtle / image].append(caption)
+        '''with open(annotations_debris, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_debris[img_dir_turtle / image][0]) < 5:
                     self.captions_debris[img_dir_turtle / image][0].append(caption)
                     if len(self.captions_debris[img_dir_turtle / image][1]) == 0:
-                        self.captions_debris[img_dir_turtle / image][1].append(-2)
+                        self.captions_debris[img_dir_turtle / image][1].append(-2)'''
          
         #START TO INSERT SEA           
-        self.captions_sea = defaultdict(lambda: [[], []])
-                
-        with open(annotations_sea, 'r') as f:
+        self.captions_sea = defaultdict(list)
+        self.df = pd.read_csv(annotations_sea)
+        for idx,row in self.df.iterrows():
+            image, comment_number, caption, category = row
+            self.captions_sea[img_dir_turtle / image].append(caption)
+        '''with open(annotations_sea, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_sea[img_dir_turtle / image][0]) < 5:
                     self.captions_sea[img_dir_turtle / image][0].append(caption)
                     if len(self.captions_sea[img_dir_turtle / image][1]) == 0:
-                        self.captions_sea[img_dir_turtle / image][1].append(-3)
+                        self.captions_sea[img_dir_turtle / image][1].append(-3)'''
                 
         #START TO INSERT DOLPHINE        
-        self.captions_dolphine = defaultdict(lambda: [[], []])
-                
-        with open(annotations_dolphine, 'r') as f:
+        self.captions_dolphine = defaultdict(list)
+        self.df = pd.read_csv(annotations_dolphine)
+        for idx,row in self.df.iterrows():
+            image, comment_number, caption, category = row
+            self.captions_dolphine[img_dir_turtle / image].append(caption)
+        '''with open(annotations_dolphine, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_dolphine[img_dir_turtle / image][0]) < 5:
                     self.captions_dolphine[img_dir_turtle / image][0].append(caption)
                     if len(self.captions_dolphine[img_dir_turtle / image][1]) == 0:
-                        self.captions_dolphine[img_dir_turtle / image][1].append(-4)
+                        self.captions_dolphine[img_dir_turtle / image][1].append(-4)'''
         
         #START TO INSERT COCO
-        self.captions_COCO = defaultdict(lambda: [[], []])
-        
-        with open(annotations_COCO, 'r') as f:
+        self.captions_COCO = defaultdict(list)
+        self.df = pd.read_csv(annotations_COCO)
+        for idx,row in self.df.iterrows():
+            image, comment_number, caption, category = row
+            self.captions_COCO[img_dir_COCO / image].append(caption)
+        '''with open(annotations_COCO, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if len(self.captions_COCO[img_dir_COCO / image][0]) < 5:
                     self.captions_COCO[img_dir_COCO / image][0].append(caption)
                     if len(self.captions_COCO[img_dir_COCO / image][1])==0:
-                        self.captions_COCO[img_dir_COCO / image][1].append(0)
+                        self.captions_COCO[img_dir_COCO / image][1].append(0)'''
                 
                 
         # get all image names
-        self.imgs_flickr30 = list(self.captions_flickr30.keys())
-        random.shuffle(self.imgs_flickr30)
+        #self.imgs_flickr30 = list(self.captions_flickr30.keys())
+        #random.shuffle(self.imgs_flickr30)
         self.imgs_turtle = list(self.captions_turtle.keys())
         random.shuffle(self.imgs_turtle)
         self.imgs_debris = list(self.captions_debris.keys())
@@ -152,22 +167,22 @@ class Custom_dataset(Dataset):
         
         # split the dataset
         if split == 'train':
-            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
+            #self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
             self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
         elif split == 'val':
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
+            #self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
-            self.imgs_turtle = random.sample(self.imgs_turtle, 300)
+            #self.imgs_turtle = random.sample(self.imgs_turtle, 300)
             self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
         elif split == "test":
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
+            #self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
             self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
             self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
@@ -209,7 +224,7 @@ class Custom_dataset(Dataset):
         else: # use all images
             pass'''
         
-        print("flickr30: ", len(self.imgs_flickr30))
+        #print("flickr30: ", len(self.imgs_flickr30))
         print("turtle: ", len(self.imgs_turtle))
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
@@ -219,10 +234,11 @@ class Custom_dataset(Dataset):
         
         
         
-        self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
+        #self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
+        self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
-        self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
-        
+        #self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
+        self.captions = self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
 
     def __len__(self):
@@ -250,7 +266,7 @@ class CollateFlickr:
         The captions will be tokenized and padded to the max_length 
         The images will be stacked into a single tensor
     """
-    def __init__(self, tokenizer, max_length=80, captions_to_use='all'):
+    def __init__(self, tokenizer, max_length=80, captions_to_use='first'):
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.captions_to_use = captions_to_use
