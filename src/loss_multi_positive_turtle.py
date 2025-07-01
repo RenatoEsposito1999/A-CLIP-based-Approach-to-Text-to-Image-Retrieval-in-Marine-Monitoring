@@ -53,6 +53,7 @@ class ContrastiveLoss(nn.Module):
             logits = torch.matmul(image_embedding, text_embedding.T) / self.temperature
             flag_i = flag.view(-1, 1)
             same_class = (flag_i == flag_i.T)
+            mask = same_class & (flag_i != 0)
             mask[torch.arange(batch_size), labels] = False     
             logits = logits.masked_fill(mask, float('-inf'))   
             rows_all_inf = torch.isinf(logits).all(dim=1)

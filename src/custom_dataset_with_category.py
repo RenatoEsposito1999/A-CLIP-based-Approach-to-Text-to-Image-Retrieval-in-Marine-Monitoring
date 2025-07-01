@@ -155,6 +155,14 @@ class Custom_dataset(Dataset):
         else: # use all images
             pass
         
+        print("flickr30: ", len(self.imgs_flickr30))
+        print("turtle: ", len(self.imgs_turtle))
+        print("debris: ", len(self.imgs_debris))
+        print("sea: ", len(self.imgs_sea))
+        print("dolphine: ",len(self.imgs_dolphine))
+        print("coco: ", len(self.imgs_COCO))
+        
+        
         #SE VUOI FARE QUALCHE TEST CON POCHE IMMAGINI DECOMMENTA QUELLO CHE C'è SOTTO
         '''# split the dataset
         if split == 'train':

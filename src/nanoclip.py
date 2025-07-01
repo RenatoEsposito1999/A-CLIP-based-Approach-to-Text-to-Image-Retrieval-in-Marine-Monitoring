@@ -275,18 +275,21 @@ class NanoCLIP(L.LightningModule):
             cat_flag = flags[q_idx]
             per_class_counts[cat_flag] += 1
 
-            # Ricostruisci predizione con stesso-flag messi in fondo (ma non il gt)
-            same_flag_indices = np.where(flags == cat_flag)[0]
-            same_flag_indices = same_flag_indices[same_flag_indices != gt_label]
-
-            pred_filtered = [idx for idx in pred if idx not in same_flag_indices]
-            pred_filtered += [idx for idx in pred if idx in same_flag_indices]  # same-class at the end
+            # Filtra solo se il flag è negativo (-1, -2, -3, -4)
+            if cat_flag < 0:
+                same_flag_indices = np.where(flags == cat_flag)[0]
+                same_flag_indices = same_flag_indices[same_flag_indices != gt_label]  # Escludi il GT stesso
+                pred_filtered = [idx for idx in pred if idx not in same_flag_indices]
+                pred_filtered += [idx for idx in pred if idx in same_flag_indices]  # Metti in fondo le stesse categorie
+            else:
+                # Se flag=0, non filtrare nulla
+                pred_filtered = pred.copy()
 
             for i, n in enumerate(k_values):
                 if gt_label in pred_filtered[:n]:
-                    correct_at_k[i:] += 1
-                    per_class_recall[cat_flag][i:] += 1
-                    break
+                    correct_at_k[i] += 1
+                    per_class_recall[cat_flag][i] += 1
+                    
 
         correct_at_k /= len(labels)
         for cat in per_class_recall:
