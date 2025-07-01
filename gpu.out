@@ -1,14 +1,33 @@
 train dataset
 flickr30:  25426
-turtle:  14429
+turtle:  21412
 debris:  544
 sea:  3755
 dolphine:  484
 coco:  32403
 val dataset
 flickr30:  3178
-turtle:  1804
+turtle:  300
 debris:  68
 sea:  469
 dolphine:  60
 coco:  4050
+START TRAINING
+┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
+┃   ┃ Name        ┃ Type            ┃ Params ┃ Mode  ┃
+┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
+│ 0 │ img_encoder │ ImageEncoder    │ 22.1 M │ train │
+│ 1 │ txt_encoder │ TextEncoder     │ 22.7 M │ train │
+│ 2 │ loss_fn     │ ContrastiveLoss │      0 │ train │
+└───┴─────────────┴─────────────────┴────────┴───────┘
+Trainable params: 14.4 M                                                                                                                                    
+Non-trainable params: 30.4 M                                                                                                                                
+Total params: 44.8 M                                                                                                                                        
+Total estimated model params size (MB): 179                                                                                                                 
+Modules in train mode: 204                                                                                                                                  
+Modules in eval mode: 120                                                                                                                                   
+Epoch 2/49 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 329/329 0:03:37 • 0:00:00 1.62it/s v_num: 10.000 Train_loss: 0.180 Train_batch_acc: 0.964 Val_loss:     
+                                                                                       1.187 Val_batch_acc: 0.639 all_recall@1: 0.639 all_recall@5: 0.935   
+                                                                                       all_recall@10: 0.974 turtle_recall@1: 1.000 turtle_recall@5: 1.000   
+                                                                                       turtle_recall@10: 1.000                                              
+Validation ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸     269/300 0:02:19 • 0:00:17 1.90it/s                                                                      

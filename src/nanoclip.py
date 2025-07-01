@@ -131,7 +131,7 @@ class NanoCLIP(L.LightningModule):
         self.validation_descriptors = {"img": [], "txt": [], "flag": []}
         self.recall_1_all = 0
         self.recall_5_all = 0
-        self_recall_10_all = 0
+        self.recall_10_all = 0
         self.recall_1_turtle = 0
         self.recall_5_turtle = 0
         self.recall_10_turtle = 0
@@ -141,7 +141,6 @@ class NanoCLIP(L.LightningModule):
         """ 
         Define a single validation step (one batch pass).
         """
-        print("STARTING VALIDATION")
         images, captions, masks, flag = batch
         
         img_descriptors, txt_descriptors = self(images, captions, masks)
@@ -163,11 +162,8 @@ class NanoCLIP(L.LightningModule):
         self.recall_10_all += recall_10_all
         self.recall_1_turtle += recall_1_turtle
         self.recall_5_turtle += recall_5_turtle
-        self.recall_10_turtle += recall_5_turtle
+        self.recall_10_turtle += recall_10_turtle
         self.num_batches += 1
-        
-        
-        
         
         '''self.validation_descriptors["img"].append(img_descriptors)
         self.validation_descriptors["txt"].append(txt_descriptors)
@@ -182,11 +178,11 @@ class NanoCLIP(L.LightningModule):
         self.recall_10_turtle /= self.num_batches
         self.log("all_recall@1", self.recall_1_all, prog_bar=True, logger=True)
         self.log("all_recall@5", self.recall_5_all, prog_bar=True, logger=True)
-        self.log("all_recall@10", self.recall_10_all, prog_bar=False, logger=True)
+        self.log("all_recall@10", self.recall_10_all, prog_bar=True, logger=True)
         
         self.log("turtle_recall@1", self.recall_1_turtle, prog_bar=True, logger=True)
         self.log("turtle_recall@5", self.recall_5_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@10", self.recall_10_turtle, prog_bar=False, logger=True)
+        self.log("turtle_recall@10", self.recall_10_turtle, prog_bar=True, logger=True)
 
     '''
     def on_validation_epoch_end(self):
@@ -268,31 +264,28 @@ class NanoCLIP(L.LightningModule):
         faiss.normalize_L2(txt_descriptors)
 
         embed_size = img_descriptors.shape[1]
-        faiss_index = faiss.IndexFlatIP(embed_size)
+        faiss_index = faiss.IndexFlatIP(embed_size) 
         faiss_index.add(img_descriptors)
 
         _, predictions = faiss_index.search(txt_descriptors, max(k_values))
 
-        correct_at_k_all = np.zeros(len(k_values))
-        correct_at_k_flagged = np.zeros(len(k_values))
-
-        relevant_indices = np.where(flags == -1)[0]
+        # Calcolo della correct@k per ogni singola query
+        correct_at_k_per_query = np.zeros((len(txt_descriptors), len(k_values)))
 
         for q_idx, pred in enumerate(predictions):
             for i, n in enumerate(k_values):
                 if np.any(np.in1d(pred[:n], labels[q_idx])):
-                    correct_at_k_all[i:] += 1
-                    if q_idx in relevant_indices:
-                        correct_at_k_flagged[i:] += 1
+                    correct_at_k_per_query[q_idx, i:] = 1
                     break
+        correct_at_k = correct_at_k_per_query.mean(axis=0)
+        # Ora estrai solo la riga corrispondente alla query con flag == -1
+        flag_array = np.array(flags)  # Assicurati che flags sia un array allineato con txt_descriptors
+        idx_flag_neg1 = np.where(flag_array == -1)[0][0]  # c'è solo uno per batch, quindi prendiamo il primo
 
-        correct_at_k_all /= len(labels)
-        if len(relevant_indices) > 0:
-            correct_at_k_flagged /= len(relevant_indices)
-        else:
-            correct_at_k_flagged[:] = 0.0
+        correct_at_k_flag_neg1 = correct_at_k_per_query[idx_flag_neg1]
 
-        return correct_at_k_all, correct_at_k_flagged
+        return correct_at_k , correct_at_k_flag_neg1
+
     
     @staticmethod
     def compute_recall_exact_only(img_descriptors, txt_descriptors, labels,k_values=[1,5,10], flags=None):

@@ -214,7 +214,7 @@ class Annotations:
                 '''for idx in range(5):
                     dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
                 #dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", dolphin\n")
-                self.writer_crop_dolphin.writerow({"image_name": img_name, "comment_number": idx, "comment": sentence,"category":"dolphin"})
+                self.writer_crop_dolphin.writerow({"image_name": img_name[0], "comment_number": idx, "comment": sentence,"category":"dolphin"})
 
             if img_name[1] == 2: #img with turt == 2
                 dynamic_random = random.Random(time.time())
@@ -225,7 +225,7 @@ class Annotations:
                 '''for idx in range(5):
                     turtle_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
                 #turtle_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", turtle\n")
-                self.writer_crop_turtle.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"turtle"})
+                self.writer_crop_turtle.writerow({"image_name": img_name[0], "comment_number":idx, "comment": sentence,"category":"turtle"})
 
             if img_name[1] == 3: ## img with trash
                 dynamic_random = random.Random(time.time())
@@ -236,7 +236,7 @@ class Annotations:
                 '''for idx in range(5):
                     debris_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
                 #debris_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", debris\n")   
-                self.writer_crop_debris.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"debris"})
+                self.writer_crop_debris.writerow({"image_name": img_name[0], "comment_number":idx, "comment": sentence,"category":"debris"})
 
             elif img_name[1] == 4: #other area sea view
                 dynamic_random = random.Random(time.time())
@@ -247,7 +247,7 @@ class Annotations:
                 '''for idx in range(5):
                     sea_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
                 #sea_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", sea\n")
-                self.writer_crop_sea.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"sea"})
+                self.writer_crop_sea.writerow({"image_name": img_name[0], "comment_number":idx, "comment": sentence,"category":"sea"})
         '''debris_txt.close()
         sea_txt.close()
         turtle_txt.close()
