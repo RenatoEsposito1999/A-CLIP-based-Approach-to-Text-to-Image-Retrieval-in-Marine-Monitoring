@@ -8,13 +8,14 @@ import time
 import pandas as pd
 from pycocotools.coco import COCO
 import os
+from get_category_info import process_file
 
-COCO_TXT_PATH = "COCO_with_category.txt"
-CROPPED_TURTLE_POSITIVE_TXT_PATH = "cropped_turtle.txt"
-CROPPED_DEBRIS_TXT_PATH = "cropped_debris.txt"
-CROPPED_DOLPHINE_TXT_PATH = "cropped_dolphine.txt"
-CROPPED_SEA_TXT_PATH = "cropped_sea.txt"
-OTHER_TURTLE_TXT_PATH = "turtle_other.txt"
+COCO_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/COCO_with_category.csv"
+CROPPED_TURTLE_POSITIVE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_turtle.csv"
+CROPPED_DEBRIS_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_debris.csv"
+CROPPED_DOLPHINE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_dolphine.csv"
+CROPPED_SEA_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_sea.csv"
+OTHER_TURTLE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/turtle_other.csv"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
 COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
@@ -54,26 +55,46 @@ class Annotations:
         self.nValNeg = nValNeg
         self.nTestPos = nTestPos
         self.nTestNeg = nTestNeg
-        self.category = {}
         self.LLM = None #self.LLM = LLM()
-        
-        #CREATE POSITIVE TURTLE CSV
-        #self.turtle_create_txt()
-        
-        #CREATE NEGATIVE COCO CSV
-        #self.COCO_create_txt()
-        #CREATE TRAINING, VALIDATION AND TEST SET
-        #self.split_2_txt(file1=CROPPED_TURTLE_POSITIVE_TXT_PATH,file2=COCO_TXT_PATH)
-        self.create_txt_other_turtle()
-        #self.category_info()
+ 
+        with (
+            open(COCO_CSV_PATH, mode='w', encoding='utf-8', newline='') as coco_file,
+            open(CROPPED_TURTLE_POSITIVE_CSV_PATH, mode='w', encoding='utf-8', newline='') as crop_turtle_file,
+            open(CROPPED_DEBRIS_CSV_PATH, mode='w', encoding='utf-8', newline='') as crop_debris_file,
+            open(CROPPED_SEA_CSV_PATH, mode='w', encoding='utf-8', newline='') as crop_sea_file,
+            open(CROPPED_DOLPHINE_CSV_PATH, mode='w', encoding='utf-8', newline='') as crop_dolphine_fileile3,
+            open(OTHER_TURTLE_CSV_PATH, mode='w', encoding='utf-8', newline='') as crop_other_turtle_fileile3,
+        ):
+            fieldnames = ['image_name', 'comment_number','comment','category']
+            self.writer_coco = csv.DictWriter(coco_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+            self.writer_crop_turtle = csv.DictWriter(crop_turtle_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+            self.writer_crop_debris = csv.DictWriter(crop_debris_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+            self.writer_crop_sea = csv.DictWriter(crop_sea_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+            self.writer_crop_dolphin = csv.DictWriter(crop_dolphine_fileile3, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+            self.writer_other_turtle = csv.DictWriter(crop_other_turtle_fileile3, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
 
-    def build_category_json(self):
-        with open("category_info.json", "w") as file_json:
-            json.dump(self.category,file_json, indent=2)
+            self.writer_coco.writeheader()
+            self.writer_crop_turtle.writeheader()
+            self.writer_crop_debris.writeheader()
+            self.writer_crop_sea.writeheader()
+            self.writer_crop_dolphin.writeheader()
+            self.writer_other_turtle.writeheader()
 
-
+            #CREATE POSITIVE TURTLE CSV
+            self.turtle_create_csv()
+            
+            #CREATE NEGATIVE COCO CSV
+            self.COCO_create_csv()
     
-    def split_2_txt(self, file1, file2, output_prefix='', random_state=None):
+            
+            
+            # TXT FOR OTHER TURTLE DATASET
+            self.create_csv_other_turtle()
+
+            process_file(dir_path="/workspace/text-to-image-retrivial/datasets/annotations")
+       
+
+    '''def split_2_txt(self, file1, file2, output_prefix='', random_state=None):
         """
         Divide due file TXT in training (80%), validation (10%) e test (10%) set.
         Formato input/output: 'image_name, comment_number, comment'
@@ -138,13 +159,13 @@ class Annotations:
         print("Split completato con successo!")
         print(f"Training set: {len(train)} righe ({len(train1)} da {file1} + {len(train2)} da {file2})")
         print(f"Validation set: {len(val)} righe ({len(val1)} da {file1} + {len(val2)} da {file2})")
-        print(f"Test set: {len(test)} righe ({len(test1)} da {file1} + {len(test2)} da {file2})")
+        print(f"Test set: {len(test)} righe ({len(test1)} da {file1} + {len(test2)} da {file2})")'''
 
     # Esempio di utilizzo:
     # split_csv('file1.csv', 'file2.csv', random_state=42)
-    def create_txt_other_turtle(self):
-        txt_file = open(OTHER_TURTLE_TXT_PATH,'w', newline='')
-        txt_file.write("image_name, comment_number, comment\n")
+    def create_csv_other_turtle(self):
+        '''txt_file = open(OTHER_TURTLE_TXT_PATH,'w', newline='')
+        txt_file.write("image_name, comment_number, comment, category\n")'''
         for root, _, files in os.walk(OTHER_TURTLE_DATASET):
             for filename in files:
                 dynamic_random = random.Random(time.time())
@@ -152,11 +173,11 @@ class Annotations:
                 sentence = generate_positive_sentence()
                 if not mantain_templating and self.LLM:
                     sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                for idx in range(5):
-                    txt_file.write(f"{filename}, {idx}, {sentence}\n")
-        txt_file.close()
-                
-                
+                '''for idx in range(5):
+                    txt_file.write(f"{filename}, {idx}, \"{sentence}\",{"turtle"}\n")'''
+                self.writer_other_turtle.writerow({"image_name": filename, "comment_number": 0, "comment": sentence,"category":"turtle"})
+        #txt_file.close()
+
     
     def extract_img(self):
         with open(DATASET_ANNOTATIONS_PATH) as file_json:
@@ -173,15 +194,15 @@ class Annotations:
                 idx = idx + 1
         return self.img_list
 
-    def turtle_create_txt(self):
-        turtle_txt = open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='')
+    def turtle_create_csv(self):
+        '''turtle_txt = open(CROPPED_TURTLE_POSITIVE_TXT_PATH,'w', newline='')
         debris_txt = open(CROPPED_DEBRIS_TXT_PATH,'w', newline='')
         dolphine_txt = open(CROPPED_DOLPHINE_TXT_PATH,'w', newline='')
         sea_txt = open(CROPPED_SEA_TXT_PATH,'w', newline='')
-        turtle_txt.write("image_name, comment_number, comment\n")
-        debris_txt.write("image_name, comment_number, comment\n")
-        dolphine_txt.write("image_name, comment_number, comment\n")
-        sea_txt.write("image_name, comment_number, comment\n")
+        turtle_txt.write("image_name, comment_number, comment, category\n")
+        debris_txt.write("image_name, comment_number, comment, category\n")
+        dolphine_txt.write("image_name, comment_number, comment, category\n")
+        sea_txt.write("image_name, comment_number, comment, category\n")'''
         for img_name in self.img_list:
             idx = 0
             if img_name[1] == 1: #img with dolphine
@@ -190,51 +211,49 @@ class Annotations:
                 sentence = generate_dolphine_sentence()
                 if not mantain_templating and self.LLM:
                     sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                for idx in range(5):
-                    dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
-                
-                #self.store_category_info("dolphin")
+                '''for idx in range(5):
+                    dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
+                #dolphine_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", dolphin\n")
+                self.writer_crop_dolphin.writerow({"image_name": img_name, "comment_number": idx, "comment": sentence,"category":"dolphin"})
+
             if img_name[1] == 2: #img with turt == 2
                 dynamic_random = random.Random(time.time())
                 mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
                 sentence = generate_positive_sentence()
                 if not mantain_templating and self.LLM:
                     sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                for idx in range(5):
-                    turtle_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
-                
-                #self.store_category_info("turtle")
+                '''for idx in range(5):
+                    turtle_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
+                #turtle_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", turtle\n")
+                self.writer_crop_turtle.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"turtle"})
+
             if img_name[1] == 3: ## img with trash
                 dynamic_random = random.Random(time.time())
                 mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
                 sentence = generate_negative_sentence(include_trash=True)
                 if not mantain_templating and self.LLM:
                     sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                for idx in range(5):
-                    debris_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
-                    
-                #self.store_category_info("debris")
+                '''for idx in range(5):
+                    debris_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
+                #debris_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", debris\n")   
+                self.writer_crop_debris.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"debris"})
+
             elif img_name[1] == 4: #other area sea view
                 dynamic_random = random.Random(time.time())
                 mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
                 sentence = generate_negative_sentence(include_trash=False)
                 if not mantain_templating and self.LLM:
                     sentence = self.LLM.rephrase_sentence(sentence=sentence)
-                for idx in range(5):
-                    sea_txt.write(f"cropped_{img_name[0]}, {idx}, {sentence}\n")
-                #self.store_category_info("sea")
-        debris_txt.close()
+                '''for idx in range(5):
+                    sea_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\"\n")'''
+                #sea_txt.write(f"cropped_{img_name[0]}, {idx}, \"{sentence}\", sea\n")
+                self.writer_crop_sea.writerow({"image_name": img_name, "comment_number":idx, "comment": sentence,"category":"sea"})
+        '''debris_txt.close()
         sea_txt.close()
         turtle_txt.close()
-        dolphine_txt.close()
+        dolphine_txt.close()'''
 
-    def store_category_info(self,category):
-        if category in self.category:
-            count = self.category[category][1]
-            self.category[category][1] = count+1
-        else:
-            self.category[category] = [self.ID,1]
-            self.ID +=1
+    
 
     def COCO_get_caption_and_category(self, img_name):
         #Trova l'immagine corrispondente
@@ -246,43 +265,34 @@ class Annotations:
                 only_captions = []
                 for caption in captions:
                     only_captions.append(caption["caption"])
-                #caption = captions[random.randint(0,len(captions)-1)]['caption']
-                #obj_ann_ids = self.instances_coco.getAnnIds(imgIds=img_id)
-                #obj_anns = self.instances_coco.loadAnns(obj_ann_ids)
-                #category_ids = list(set([ann['category_id'] for ann in obj_anns]))
-                '''if not category_ids:
+                caption = captions[random.randint(0,len(captions)-1)]['caption']
+                obj_ann_ids = self.instances_coco.getAnnIds(imgIds=img_id)
+                obj_anns = self.instances_coco.loadAnns(obj_ann_ids)
+                category_ids = list(set([ann['category_id'] for ann in obj_anns]))
+                if not category_ids:
                     supercategory = "empty"
                 else:
                     supercategories = list(set([self.instances_coco.cats[cat_id]['supercategory']
                                             for cat_id in category_ids]))
-                    supercategory = random.choice(supercategories)'''
+                    supercategory = random.choice(supercategories)
                 
-                return only_captions
-        
-    def COCO_create_txt(self):        
-        with open(COCO_TXT_PATH, 'w') as txt_file:  # Apri il file in modalità scrittura
-            txt_file.write("image_name, comment_number, comment\n")
-            for file_name in os.listdir(COCO_DATASET_PATH):
-                # Ottieni la lista di caption e la categoria
-                captions = self.COCO_get_caption_and_category(file_name)
-                       
-                # Per ogni caption nella lista, scrivi una riga nel file .txt
-                for i, caption in enumerate(captions):
-                    # Formato: image_name, comment_number, comment
-                    caption = caption.replace("\n", "")
-                    txt_file.write(f"{file_name}, {i}, {caption}\n")
-    
-    def category_info(self):
-        with open("training.csv", mode='r', encoding='utf-8') as file:
-        #with open("cropped_marine_dataset.csv", mode='r', encoding='utf-8') as file:
-            # Utilizza DictReader per accedere ai campi per nome
-            reader = csv.DictReader(file)
-            for row in reader:
-                if 'category' in row:
-                    self.store_category_info(row['category'])
-        self.build_category_json()
+                return random.choice(only_captions), supercategory
 
-
+    def COCO_create_csv(self):        
+            #txt_file.write("image_name, comment_number, comment, category\n")
+        for file_name in os.listdir(COCO_DATASET_PATH):
+            # Ottieni la lista di caption e la categoria
+            sentence, category = self.COCO_get_caption_and_category(file_name)
+            if not category == "empty":
+                sentence = sentence.replace("\n", "")
+                self.writer_coco.writerow({"image_name": file_name, "comment_number": 0, "comment": sentence,"category":category})
+            # Per ogni caption nella lista, scrivi una riga nel file .txt
+            '''for i, caption in enumerate(captions):
+                # Formato: image_name, comment_number, comment
+                caption = caption.replace("\n", "")
+                txt_file.write(f"{file_name}, {i}, {caption}\n")'''
+            '''caption = caption.replace("\n", "")
+            txt_file.write(f"{file_name}, {i}, {caption}\n")'''
 
 dataset = Annotations(train_size=24000,val_size=3000, test_size = 3000, nTrainPos=8000,nTrainNeg=16000,nValPos=1000,nValNeg=2000,nTestPos=1000,nTestNeg=2000)
 
