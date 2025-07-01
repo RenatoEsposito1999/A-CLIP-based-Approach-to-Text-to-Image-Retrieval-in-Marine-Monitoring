@@ -20,6 +20,7 @@ from src.nanoclip import NanoCLIP
 #from src.dataset import Flickr30k, CollateFlickr
 from src.custom_dataset_with_category import Custom_dataset, CollateFlickr
 from custom_utils.telegram_notification import send_telegram_notification
+from src.batch_validation_sampler import BalancedValidationSampler
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
@@ -89,12 +90,11 @@ def train(batch_size, lr, dim, dev):
     )
     
    
-    
-    
     val_dataloader = DataLoader(
         val_dataset, 
-        batch_size=batch_size, 
-        shuffle=False, 
+        #batch_size=batch_size, 
+        #shuffle=False,
+        batch_sampler= BalancedValidationSampler(val_dataset, batch_size=batch_size),
         num_workers=4, 
         pin_memory=True,
         collate_fn=CollateFlickr(tokenizer,  max_length=80, captions_to_use='first') # in eval we use the first caption only

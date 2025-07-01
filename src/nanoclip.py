@@ -129,6 +129,13 @@ class NanoCLIP(L.LightningModule):
     
     def on_validation_epoch_start(self):
         self.validation_descriptors = {"img": [], "txt": [], "flag": []}
+        self.recall_1_all = 0
+        self.recall_5_all = 0
+        self_recall_10_all = 0
+        self.recall_1_turtle = 0
+        self.recall_5_turtle = 0
+        self.recall_10_turtle = 0
+        self.num_batches = 0
         
     def validation_step(self, batch, batch_idx):
         """ 
@@ -146,11 +153,42 @@ class NanoCLIP(L.LightningModule):
         img_descriptors = img_descriptors.detach().cpu().numpy()
         txt_descriptors = txt_descriptors.detach().cpu().numpy()
         flag = flag.detach().cpu().numpy()
+        B = img_descriptors.shape[0]
+        labels = np.arange(B)
+        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag)
+        recall_1_all, recall_5_all, recall_10_all = recall_list_all
+        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
+        self.recall_1_all += recall_1_all
+        self.recall_5_all +=recall_5_all
+        self.recall_10_all += recall_10_all
+        self.recall_1_turtle += recall_1_turtle
+        self.recall_5_turtle += recall_5_turtle
+        self.recall_10_turtle += recall_5_turtle
+        self.num_batches += 1
         
-        self.validation_descriptors["img"].append(img_descriptors)
+        
+        
+        
+        '''self.validation_descriptors["img"].append(img_descriptors)
         self.validation_descriptors["txt"].append(txt_descriptors)
-        self.validation_descriptors["flag"].append(flag)
-    
+        self.validation_descriptors["flag"].append(flag)'''
+        
+    def on_validation_epoch_end(self):
+        self.recall_1_all /= self.num_batches
+        self.recall_5_all /= self.num_batches
+        self.recall_10_all /= self.num_batches
+        self.recall_1_turtle /= self.num_batches
+        self.recall_5_turtle /= self.num_batches
+        self.recall_10_turtle /= self.num_batches
+        self.log("all_recall@1", self.recall_1_all, prog_bar=True, logger=True)
+        self.log("all_recall@5", self.recall_5_all, prog_bar=True, logger=True)
+        self.log("all_recall@10", self.recall_10_all, prog_bar=False, logger=True)
+        
+        self.log("turtle_recall@1", self.recall_1_turtle, prog_bar=True, logger=True)
+        self.log("turtle_recall@5", self.recall_5_turtle, prog_bar=True, logger=True)
+        self.log("turtle_recall@10", self.recall_10_turtle, prog_bar=False, logger=True)
+
+    '''
     def on_validation_epoch_end(self):
         """ 
         Calculate the recall at 1, 5, and 10 for the validation set.
@@ -166,19 +204,20 @@ class NanoCLIP(L.LightningModule):
         # use faiss to calculate recall, images are gallery and texts are queries
         #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
         #recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
-        recall_list_all, recall_list_turtle = self.compute_recall_exact_only(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
         recall_1_all, recall_5_all, recall_10_all = recall_list_all
-        #recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
+        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
         self.log("all_recall@1", recall_1_all, prog_bar=True, logger=True)
         self.log("all_recall@5", recall_5_all, prog_bar=True, logger=True)
         self.log("all_recall@10", recall_10_all, prog_bar=False, logger=True)
         
-        '''self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
+        self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
         self.log("turtle_recall@5", recall_5_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)'''
+        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)
 
         # clear the validation descriptors for the next epoch
         self.validation_descriptors.clear()
+    '''
     
     '''@staticmethod
     def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10]):
@@ -237,7 +276,7 @@ class NanoCLIP(L.LightningModule):
         correct_at_k_all = np.zeros(len(k_values))
         correct_at_k_flagged = np.zeros(len(k_values))
 
-        relevant_indices = np.where(flags == 1)[0]
+        relevant_indices = np.where(flags == -1)[0]
 
         for q_idx, pred in enumerate(predictions):
             for i, n in enumerate(k_values):

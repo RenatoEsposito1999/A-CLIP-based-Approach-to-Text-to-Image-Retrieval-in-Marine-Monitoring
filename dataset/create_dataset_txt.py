@@ -21,7 +21,7 @@ COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
 DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/datasets/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
 COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
-OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/"
+OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/turtle/"
 
 '''DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
 COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
@@ -143,7 +143,20 @@ class Annotations:
     # Esempio di utilizzo:
     # split_csv('file1.csv', 'file2.csv', random_state=42)
     def create_txt_other_turtle(self):
-        
+        txt_file = open(OTHER_TURTLE_TXT_PATH,'w', newline='')
+        txt_file.write("image_name, comment_number, comment\n")
+        for root, _, files in os.walk(OTHER_TURTLE_DATASET):
+            for filename in files:
+                dynamic_random = random.Random(time.time())
+                mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
+                sentence = generate_positive_sentence()
+                if not mantain_templating and self.LLM:
+                    sentence = self.LLM.rephrase_sentence(sentence=sentence)
+                for idx in range(5):
+                    txt_file.write(f"{filename}, {idx}, {sentence}\n")
+        txt_file.close()
+                
+                
     
     def extract_img(self):
         with open(DATASET_ANNOTATIONS_PATH) as file_json:

@@ -30,6 +30,7 @@ class Custom_dataset(Dataset):
         img_dir_flicker = img_dir / "flickr30k_images"
         img_dir_COCO = img_dir / "COCO"
         img_dir_turtle = img_dir / "Train_cropped"
+        img_dir_other_turtle = img_dir / "turtle"
         
         annotations_dir = base_path / "annotations"
         annotations_flicker =  annotations_dir / "captions.txt"
@@ -38,6 +39,7 @@ class Custom_dataset(Dataset):
         annotations_debris = annotations_dir / "cropped_debris.txt"
         annotations_sea = annotations_dir / "cropped_sea.txt"
         annotations_dolphine = annotations_dir / "cropped_dolphine.txt"
+        annotations_other_turtle = annotations_dir / "turtle_other.txt"
         
         if not img_dir.exists():
             raise ValueError(f"Cannot find the flickr30k_images folder in {base_path}. Make sure to download the dataset.")
@@ -52,6 +54,7 @@ class Custom_dataset(Dataset):
         '''
             for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
         '''
+        #START TO INSERT FLICKR30
         self.captions_flickr30 = defaultdict(lambda: [[], []])
         
         with open(annotations_flicker, 'r') as f:
@@ -61,7 +64,7 @@ class Custom_dataset(Dataset):
                 if len(self.captions_flickr30[img_dir_flicker / image][1])==0:
                     self.captions_flickr30[img_dir_flicker / image][1].append(0)
         
-                
+        #START TO INSERT TURTLE (TURTLE AND OTHER TURTLE)    
         self.captions_turtle = defaultdict(lambda: [[], []])
                 
         with open(annotations_turtle, 'r') as f:
@@ -71,8 +74,16 @@ class Custom_dataset(Dataset):
                     self.captions_turtle[img_dir_turtle / image][0].append(caption)
                     if len(self.captions_turtle[img_dir_turtle / image][1])==0:
                         self.captions_turtle[img_dir_turtle / image][1].append(-1)
-                    
-                    
+                        
+        with open(annotations_other_turtle, 'r') as f:
+            for line in f.readlines()[1:]: # ignore the header (first line)
+                image, caption_number, caption = line.strip().split(',', 2)
+                if len(self.captions_turtle[img_dir_other_turtle / image][0]) < 5:
+                    self.captions_turtle[img_dir_other_turtle / image][0].append(caption)
+                    if len(self.captions_turtle[img_dir_other_turtle / image][1])==0:
+                        self.captions_turtle[img_dir_other_turtle / image][1].append(-1)
+        
+        #START TO INSERT DEBRIS          
         self.captions_debris = defaultdict(lambda: [[], []])
                 
         with open(annotations_debris, 'r') as f:
@@ -82,7 +93,8 @@ class Custom_dataset(Dataset):
                     self.captions_debris[img_dir_turtle / image][0].append(caption)
                     if len(self.captions_debris[img_dir_turtle / image][1]) == 0:
                         self.captions_debris[img_dir_turtle / image][1].append(-2)
-                    
+         
+         #START TO INSERT SEA           
         self.captions_sea = defaultdict(lambda: [[], []])
                 
         with open(annotations_sea, 'r') as f:
@@ -93,7 +105,7 @@ class Custom_dataset(Dataset):
                     if len(self.captions_sea[img_dir_turtle / image][1]) == 0:
                         self.captions_sea[img_dir_turtle / image][1].append(-3)
                 
-                    
+        #START TO INSERT DOLPHINE        
         self.captions_dolphine = defaultdict(lambda: [[], []])
                 
         with open(annotations_dolphine, 'r') as f:
@@ -104,6 +116,7 @@ class Custom_dataset(Dataset):
                     if len(self.captions_dolphine[img_dir_turtle / image][1]) == 0:
                         self.captions_dolphine[img_dir_turtle / image][1].append(-4)
         
+        #START TO INSERT COCO
         self.captions_COCO = defaultdict(lambda: [[], []])
         
         with open(annotations_COCO, 'r') as f:
@@ -141,6 +154,7 @@ class Custom_dataset(Dataset):
         elif split == 'val':
             self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
+            self.imgs_turtle = random.sample(self.imgs_turtle, 500)
             self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
