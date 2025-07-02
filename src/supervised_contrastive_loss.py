@@ -12,7 +12,7 @@ class SupervisedContrastiveLoss(nn.Module):
         super().__init__()
         self.temperature = temperature
         
-    def build_target_matrix(flags):
+    def build_target_matrix(self, flags):
         """
         Costruisce la matrice target per SupConLoss.
     
@@ -32,6 +32,8 @@ class SupervisedContrastiveLoss(nn.Module):
     
         # Imposta a 0 gli elementi sulla diagonale (non confrontiamo un esempio con se stesso)
         #target.fill_diagonal_(0)
+        print(flags)
+        print(target)
     
         return target
 
@@ -52,6 +54,7 @@ class SupervisedContrastiveLoss(nn.Module):
                 exp_logits_i2t = torch.exp(logits_i2t)
                 log_prob_i2t = logits_i2t - torch.log(exp_logits_i2t.sum(dim=1, keepdim=True))
                 positive_mask_i2t = (labels > 0).float()
+                
                 per_instance_loss_i2t = - (log_prob_i2t * positive_mask_i2t).sum(dim=1) / torch.clamp(positive_mask_i2t.sum(dim=1), min=1.0)
                 
                 #FOR TEXT TO IMAGE
@@ -66,12 +69,12 @@ class SupervisedContrastiveLoss(nn.Module):
         # caso single-caption
         else:
             #FOR IMAGE TO TEXT
-            logits_i2t = torch.matmul(image_embedding, text_emb.T) / self.temperature
+            logits_i2t = torch.matmul(image_embedding, text_embedding.T) / self.temperature
             exp_logits_i2t = torch.exp(logits_i2t)
             log_prob_i2t = logits_i2t - torch.log(exp_logits_i2t.sum(dim=1, keepdim=True))
             positive_mask_i2t = (labels > 0).float()
             per_instance_loss_i2t = - (log_prob_i2t * positive_mask_i2t).sum(dim=1) / torch.clamp(positive_mask_i2t.sum(dim=1), min=1.0)
-                
+    
             #FOR TEXT TO IMAGE
             logits_t2i = logits_i2t.T
             exp_logits_t2i = torch.exp(logits_t2i)

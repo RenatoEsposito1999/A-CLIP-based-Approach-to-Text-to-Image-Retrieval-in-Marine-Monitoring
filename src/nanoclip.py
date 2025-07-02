@@ -13,7 +13,11 @@ import numpy as np
 import lightning as L
 #from src.loss import ContrastiveLoss
 from src.loss_multi_positive_turtle import ContrastiveLoss
+from src.supervised_contrastive_loss import SupervisedContrastiveLoss
 from src.models import ImageEncoder, TextEncoder
+import json
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 class NanoCLIP(L.LightningModule):
@@ -49,8 +53,12 @@ class NanoCLIP(L.LightningModule):
         
         self.img_encoder = ImageEncoder(self.embed_size, self.img_model, unfreeze_n_blocks)
         self.txt_encoder = TextEncoder(self.embed_size, self.txt_model, unfreeze_n_blocks)
-        self.loss_fn = ContrastiveLoss(temperature=0.05)
-
+        self.loss_fn = SupervisedContrastiveLoss(temperature=0.05)
+        
+        with open("/workspace/text-to-image-retrivial/datasets/annotations/category_info.json", "r") as f:
+            data = json.load(f)
+            self.focus_id.append(data["turtle"][0], data["dolphin"][0], data["sea"][0], data["debris"][0])
+        
     
     def configure_optimizers(self):
         """
@@ -129,13 +137,7 @@ class NanoCLIP(L.LightningModule):
     
     def on_validation_epoch_start(self):
         self.validation_descriptors = {"img": [], "txt": [], "flag": []}
-        self.recall_1_all = 0
-        self.recall_5_all = 0
-        self.recall_10_all = 0
-        self.recall_1_turtle = 0
-        self.recall_5_turtle = 0
-        self.recall_10_turtle = 0
-        self.num_batches = 0
+        
         
     def validation_step(self, batch, batch_idx):
         """ 
@@ -152,39 +154,15 @@ class NanoCLIP(L.LightningModule):
         img_descriptors = img_descriptors.detach().cpu().numpy()
         txt_descriptors = txt_descriptors.detach().cpu().numpy()
         flag = flag.detach().cpu().numpy()
-        B = img_descriptors.shape[0]
-        labels = np.arange(B)
-        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag)
-        recall_1_all, recall_5_all, recall_10_all = recall_list_all
-        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
-        self.recall_1_all += recall_1_all
-        self.recall_5_all +=recall_5_all
-        self.recall_10_all += recall_10_all
-        self.recall_1_turtle += recall_1_turtle
-        self.recall_5_turtle += recall_5_turtle
-        self.recall_10_turtle += recall_10_turtle
-        self.num_batches += 1
         
-        '''self.validation_descriptors["img"].append(img_descriptors)
+        
+        self.validation_descriptors["img"].append(img_descriptors)
         self.validation_descriptors["txt"].append(txt_descriptors)
-        self.validation_descriptors["flag"].append(flag)'''
+        self.validation_descriptors["flag"].append(flag)
         
-    def on_validation_epoch_end(self):
-        self.recall_1_all /= self.num_batches
-        self.recall_5_all /= self.num_batches
-        self.recall_10_all /= self.num_batches
-        self.recall_1_turtle /= self.num_batches
-        self.recall_5_turtle /= self.num_batches
-        self.recall_10_turtle /= self.num_batches
-        self.log("all_recall@1", self.recall_1_all, prog_bar=True, logger=True)
-        self.log("all_recall@5", self.recall_5_all, prog_bar=True, logger=True)
-        self.log("all_recall@10", self.recall_10_all, prog_bar=True, logger=True)
-        
-        self.log("turtle_recall@1", self.recall_1_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@5", self.recall_5_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@10", self.recall_10_turtle, prog_bar=True, logger=True)
+    
 
-    '''
+    
     def on_validation_epoch_end(self):
         """ 
         Calculate the recall at 1, 5, and 10 for the validation set.
@@ -200,23 +178,27 @@ class NanoCLIP(L.LightningModule):
         # use faiss to calculate recall, images are gallery and texts are queries
         #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
         #recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
-        recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
-        recall_1_all, recall_5_all, recall_10_all = recall_list_all
-        recall_1_turtle, recall_5_turtle, recall_10_turtle = recall_list_turtle
-        self.log("all_recall@1", recall_1_all, prog_bar=True, logger=True)
-        self.log("all_recall@5", recall_5_all, prog_bar=True, logger=True)
-        self.log("all_recall@10", recall_10_all, prog_bar=False, logger=True)
+        recall_exactly_matching = self.compute_text_to_image_recall_exactly_matching(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        recall_1_all_exactly_matching = recall_exactly_matching["recall@1"]
+        recall_5_all_exactly_matching = recall_exactly_matching["recall@5"]
+        recall_10_all_exactly_matching = recall_exactly_matching["recall@10"]
+        recall_1_turtle_exactly_matching = recall_exactly_matching["recall@1_turtle"]
+        recall_5_turtle_exactly_matching = recall_exactly_matching["recall@5_turtle"]
+        recall_10_turtle_exactly_matching = recall_exactly_matching["recall@10_turtle"]
+        self.log("exactly_all_r@1", recall_1_all_exactly_matching, prog_bar=True, logger=True)
+        self.log("exactly_all_r@5", recall_5_all_exactly_matching, prog_bar=True, logger=True)
+        self.log("exactly_all_r@10", recall_10_all_exactly_matching, prog_bar=False, logger=True)
         
-        self.log("turtle_recall@1", recall_1_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@5", recall_5_turtle, prog_bar=True, logger=True)
-        self.log("turtle_recall@10", recall_10_turtle, prog_bar=False, logger=True)
+        self.log("exactly_turtle_r@1", recall_1_turtle_exactly_matching, prog_bar=True, logger=True)
+        self.log("exactly_turtle_r@5", recall_5_turtle_exactly_matching, prog_bar=True, logger=True)
+        self.log("exactly_turtle_r@10", recall_10_turtle_exactly_matching, prog_bar=False, logger=True)
 
         # clear the validation descriptors for the next epoch
         self.validation_descriptors.clear()
-    '''
     
-    '''@staticmethod
-    def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10]):
+    '''
+    @staticmethod
+    def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flag=None):
         """ 
         Calculate the recall at k for the given img_descriptors as gallery
         and txt_descriptors as queries.
@@ -224,6 +206,9 @@ class NanoCLIP(L.LightningModule):
         #SE VUOI LA SIMILARITA' L2 DECOMMENTA QUESTE DUE LINEE DI CODICE E COMMENTA LE ALTRE DA faiss.normalize_L2 fino a faiss_index = faiss.IndexFlatIP(embed_size)
         #embed_size = img_descriptors.shape[1]
         #faiss_index = faiss.IndexFlatL2(embed_size)
+        
+        #flag = [12,2,0,3,5,12]
+        
         
         # Normalize the descriptors to unit length for cosine similarity
         faiss.normalize_L2(img_descriptors)
@@ -235,97 +220,106 @@ class NanoCLIP(L.LightningModule):
         
         faiss_index.add(img_descriptors) # add images to the index
         _, predictions = faiss_index.search(txt_descriptors, max(k_values)) # search for the top k images for each text query
-        
-        correct_at_k = np.zeros(len(k_values))
+        #predictions = [1,5,4,3]
+        correct_at_k = np.zeros(len(k_values)) #[0,0,0]
         for q_idx, pred in enumerate(predictions):
             for i, n in enumerate(k_values):
                 # if in top N then also in top NN, where NN > N
                 if np.any(np.in1d(pred[:n], labels[q_idx])):
                     correct_at_k[i:] += 1
+                    #Se category è turtle
                     break
         
         correct_at_k /= len(labels)
                 
-        return correct_at_k'''
-        
-        
-    @staticmethod
-    def _calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=None):
-        """ 
-        Calculate the recall at k for the given img_descriptors as gallery
-        and txt_descriptors as queries.
+        return correct_at_k
+    '''
+
+    def compute_text_to_image_recall_exactly_matching(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories = None):
         """
-        #SE VUOI LA SIMILARITA' L2 DECOMMENTA QUESTE DUE LINEE DI CODICE E COMMENTA LE ALTRE DA faiss.normalize_L2 fino a faiss_index = faiss.IndexFlatIP(embed_size)
-        #embed_size = img_descriptors.shape[1]
-        #faiss_index = faiss.IndexFlatL2(embed_size)
-        
-        # Normalize for cosine similarity
-        faiss.normalize_L2(img_descriptors)
-        faiss.normalize_L2(txt_descriptors)
+        Calcola Recall@K per un problema di text-to-image retrieval.
+        - Calcolo globale su tutto il dataset
+        - Supporta estrazione per singola categoria senza ricalcolare la similarità
 
-        embed_size = img_descriptors.shape[1]
-        faiss_index = faiss.IndexFlatIP(embed_size) 
-        faiss_index.add(img_descriptors)
+        Args:
+            text_embeddings (np.ndarray): shape (N, D)
+            image_embeddings (np.ndarray): shape (N, D)
+            categories (List[str]): categoria di ciascuna coppia
+            k_values (List[int]): valori di k per cui calcolare la recall
+            category_filter (str, optional): se specificato, calcola solo sulle entry di quella categoria
 
-        _, predictions = faiss_index.search(txt_descriptors, max(k_values))
-
-        # Calcolo della correct@k per ogni singola query
-        correct_at_k_per_query = np.zeros((len(txt_descriptors), len(k_values)))
-
-        for q_idx, pred in enumerate(predictions):
-            for i, n in enumerate(k_values):
-                if np.any(np.in1d(pred[:n], labels[q_idx])):
-                    correct_at_k_per_query[q_idx, i:] = 1
-                    break
-        correct_at_k = correct_at_k_per_query.mean(axis=0)
-        # Ora estrai solo la riga corrispondente alla query con flag == -1
-        flag_array = np.array(flags)  # Assicurati che flags sia un array allineato con txt_descriptors
-        idx_flag_neg1 = np.where(flag_array == -1)[0][0]  # c'è solo uno per batch, quindi prendiamo il primo
-
-        correct_at_k_flag_neg1 = correct_at_k_per_query[idx_flag_neg1]
-
-        return correct_at_k , correct_at_k_flag_neg1
-
+        Returns:
+            dict: recall@k globali e opzionalmente per categoria
+        """
+        text_embeddings = np.array(text_embeddings)
+        image_embeddings = np.array(image_embeddings)
+        categories = np.array(categories)
     
-    @staticmethod
-    def compute_recall_exact_only(img_descriptors, txt_descriptors, labels,k_values=[1,5,10], flags=None):
-        faiss.normalize_L2(img_descriptors)
-        faiss.normalize_L2(txt_descriptors)
+        assert text_embeddings.shape[0] == image_embeddings.shape[0] == len(categories)
+    
+        n = len(text_embeddings)
+        sim_matrix = cosine_similarity(text_embeddings, image_embeddings)
+        top_k_indices = np.argsort(-sim_matrix, axis=1)  # descending order
 
-        embed_size = img_descriptors.shape[1]
-        faiss_index = faiss.IndexFlatIP(embed_size)
-        faiss_index.add(img_descriptors)
+        results = {}
+        
+        # Calcolo recall@k globali
+        for k in k_values:
+            correct = [i in top_k_indices[i, :k] for i in range(n)]
+            results[f"recall@{k}"] = np.mean(correct)
 
-        _, predictions = faiss_index.search(txt_descriptors, max(k_values))
+        # Calcolo recall@k per categoria specifica (usando stessi indici)
+            mask = (categories == self.focus_id)
+            indices = np.where(mask)[0]
+            for k in k_values:
+                correct = [i in top_k_indices[i, :k] for i in indices]
+                results[f"recall@{k}_turtle"] = np.mean(correct) if indices.size > 0 else 0.0
 
-        correct_at_k = np.zeros(len(k_values))
-        per_class_recall = {cat: np.zeros(len(k_values)) for cat in [-1, -2, -3, -4, 0]}
-        per_class_counts = {cat: 0 for cat in [-1, -2, -3, -4, 0]}
+        return results
+    
+    def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, categories, k_values=[1, 5, 10]):
+        """
+        Calcola Recall@K per ogni categoria:
+        - Retrieval è considerata corretta se almeno un'immagine nelle top-k ha la stessa categoria del testo
 
-        for q_idx, pred in enumerate(predictions):
-            gt_label = labels[q_idx]
-            cat_flag = flags[q_idx]
-            per_class_counts[cat_flag] += 1
+        Args:
+            text_embeddings (np.ndarray): shape (N, D)
+            image_embeddings (np.ndarray): shape (N, D)
+            categories (List[str]): categoria di ogni coppia immagine-testo
+            k_values (List[int]): valori di k da considerare
 
-            # Filtra solo se il flag è negativo (-1, -2, -3, -4)
-            if cat_flag < 0:
-                same_flag_indices = np.where(flags == cat_flag)[0]
-                same_flag_indices = same_flag_indices[same_flag_indices != gt_label]  # Escludi il GT stesso
-                pred_filtered = [idx for idx in pred if idx not in same_flag_indices]
-                pred_filtered += [idx for idx in pred if idx in same_flag_indices]  # Metti in fondo le stesse categorie
-            else:
-                # Se flag=0, non filtrare nulla
-                pred_filtered = pred.copy()
+        Returns:
+            dict: {"recall@1_turtle": ..., "recall@5_cat": ..., ...}
+        """
+        text_embeddings = np.array(text_embeddings)
+        image_embeddings = np.array(image_embeddings)
+        categories = np.array(categories)
 
-            for i, n in enumerate(k_values):
-                if gt_label in pred_filtered[:n]:
-                    correct_at_k[i] += 1
-                    per_class_recall[cat_flag][i] += 1
-                    
+        assert text_embeddings.shape[0] == image_embeddings.shape[0] == len(categories)
 
-        correct_at_k /= len(labels)
-        for cat in per_class_recall:
-            if per_class_counts[cat] > 0:
-                per_class_recall[cat] /= per_class_counts[cat]
+        sim_matrix = cosine_similarity(text_embeddings, image_embeddings)
+        top_k_indices = np.argsort(-sim_matrix, axis=1)
 
-        return correct_at_k, per_class_recall
+        results = {}
+        unique_categories = np.unique(categories)
+
+        for cat in unique_categories:
+            text_indices = np.where(categories == cat)[0]
+            if len(text_indices) == 0:
+                continue
+
+            for k in k_values:
+                correct = 0
+                for i in text_indices:
+                    retrieved_image_indices = top_k_indices[i, :k]
+                    retrieved_categories = categories[retrieved_image_indices]
+                    if cat in retrieved_categories:
+                        correct += 1
+                results[f"recall@{k}_{cat}"] = correct / len(text_indices)
+
+        return results
+
+
+
+        
+    
