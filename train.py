@@ -20,7 +20,6 @@ from src.nanoclip import NanoCLIP
 #from src.dataset import Flickr30k, CollateFlickr
 from src.custom_dataset_with_category import Custom_dataset, CollateFlickr
 from custom_utils.telegram_notification import send_telegram_notification
-from src.batch_validation_sampler import BalancedValidationSampler
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
@@ -76,7 +75,7 @@ def train(batch_size, lr, dim, dev):
     train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
     print("val dataset")
     val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
-    exit()
+ 
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
 
@@ -86,22 +85,18 @@ def train(batch_size, lr, dim, dev):
         shuffle=True, 
         num_workers=4, 
         pin_memory=True, 
-        collate_fn=CollateFlickr(tokenizer, max_length=80, captions_to_use='all') # captions_to_use='random' or 'first' or 'all'
+        collate_fn=CollateFlickr(tokenizer, max_length=80, captions_to_use='first') # captions_to_use='random' or 'first' or 'all'
     )
     
-   
     val_dataloader = DataLoader(
         val_dataset, 
-        #batch_size=batch_size, 
-        #shuffle=False,
-        batch_sampler= BalancedValidationSampler(val_dataset, batch_size=batch_size),
+        batch_size=batch_size, 
+        shuffle=False,
         num_workers=4, 
         pin_memory=True,
         collate_fn=CollateFlickr(tokenizer,  max_length=80, captions_to_use='first') # in eval we use the first caption only
     )
-    
-    
-    
+      
     tensorboard_logger = TensorBoardLogger(
         save_dir=f"./logs",
         name=f"nano_clip",
@@ -153,7 +148,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
     
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
-    parser.add_argument("--bs", type=int, default=256, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=15, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()
