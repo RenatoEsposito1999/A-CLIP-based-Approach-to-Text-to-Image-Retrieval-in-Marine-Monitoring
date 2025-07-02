@@ -4,7 +4,7 @@ import csv
 CATEGORY = {}
 ID = 0
 def build_category_json():
-        with open("category_info.json", "w") as file_json:
+        with open("/workspace/text-to-image-retrivial/datasets/annotations/category_info.json", "w") as file_json:
             json.dump(CATEGORY,file_json, indent=2)
 
 def store_category_info(category):

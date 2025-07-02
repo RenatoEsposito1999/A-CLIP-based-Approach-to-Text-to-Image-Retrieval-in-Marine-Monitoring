@@ -71,13 +71,23 @@ def train(batch_size, lr, dim, dev):
     
     '''train_dataset = Flickr30k('./datasets/flickr30k', split='train', img_transform=train_transform)
     val_dataset = Flickr30k('./datasets/flickr30k', split='val', img_transform=valid_transform)'''
-    print("train dataset")
+    print("Train dataset")
+    print("-"*15)
     train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
-    print("val dataset")
+    print("-"*15)
+    print("Val dataset")
     val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
+    print("-"*15)
  
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
+
+    '''
+    sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=256, classes_per_batch=8)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_sampler=sampler, num_workers=4)
+
+    '''
+
 
     train_dataloader = DataLoader(
         train_dataset, 
@@ -104,8 +114,8 @@ def train(batch_size, lr, dim, dev):
     )
     
     checkpoint_cb = ModelCheckpoint(
-        monitor="all_recall@5",
-        filename="epoch=[{epoch:02d}]_recall@5=[{all_recall@5:.4f}]]",
+        monitor="category_all_r@5",
+        filename="epoch=[{epoch:02d}]_recall@5=[{categories_r@5:.4f}]]",
         auto_insert_metric_name=False,
         save_weights_only=True,
         save_top_k=1,
@@ -133,7 +143,7 @@ def train(batch_size, lr, dim, dev):
             epoch_checkpoint_cb,
             RichProgressBar()           # comment this line if you want classic progress bar
         ],
-        log_every_n_steps=10,
+        #log_every_n_steps=10,
         fast_dev_run=dev,
         enable_model_summary=True,
     )
@@ -148,7 +158,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
     
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
-    parser.add_argument("--bs", type=int, default=15, help="Batch size.")
+    parser.add_argument("--bs", type=int, default=256, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
     args = parser.parse_args()

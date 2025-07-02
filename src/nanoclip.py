@@ -72,9 +72,7 @@ class NanoCLIP(L.LightningModule):
             {"params": self.txt_encoder.parameters(), "lr": self.lr, "weight_decay": self.weight_decay},
         ]
         optimizer = torch.optim.AdamW(optimizer_params)
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=self.milestones, gamma=self.lr_mult
-        )    
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_mult)    
         return [optimizer], [scheduler]
     
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
@@ -181,7 +179,10 @@ class NanoCLIP(L.LightningModule):
         # use faiss to calculate recall, images are gallery and texts are queries
         #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
         #recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
-        recall_exactly_matching = self.compute_text_to_image_recall_exactly_matching(img_descriptors, txt_descriptors, k_values=[1, 5, 10], categories=flag_descriptors)
+        
+        
+        # MATTCHING ESATTO DA METTERE IN FUTURO SE HA SENSO 
+        '''recall_exactly_matching = self.compute_text_to_image_recall_exactly_matching(img_descriptors, txt_descriptors, k_values=[1, 5, 10], categories=flag_descriptors)
         recall_1_all_exactly_matching = recall_exactly_matching["recall@1"]
         recall_5_all_exactly_matching = recall_exactly_matching["recall@5"]
         recall_10_all_exactly_matching = recall_exactly_matching["recall@10"]
@@ -194,23 +195,23 @@ class NanoCLIP(L.LightningModule):
         
         self.log("exactly_turtle_r@1", recall_1_turtle_exactly_matching, prog_bar=True, logger=True)
         self.log("exactly_turtle_r@5", recall_5_turtle_exactly_matching, prog_bar=True, logger=True)
-        self.log("exactly_turtle_r@10", recall_10_turtle_exactly_matching, prog_bar=False, logger=True)
+        self.log("exactly_turtle_r@10", recall_10_turtle_exactly_matching, prog_bar=False, logger=True)'''
         
         recall_category_matching = self.compute_recall_per_category_loose(img_descriptors, txt_descriptors, k_values=[1, 5, 10], categories=flag_descriptors)
-        recall_1_category = recall_category_matching["recall@1_macro"]
-        recall_5_category = recall_category_matching["recall@5_macro"]
-        recall_10_category = recall_category_matching["recall@10_macro"]
-        recall_1_turtle = recall_category_matching["recall@1_turtle"]
-        recall_5_turtle = recall_category_matching["recall@5_turtle"]
-        recall_10_turtle = recall_category_matching["recall@10_turtle"]
+        recall_1_category = recall_category_matching["cat_all_R@1"]
+        recall_5_category = recall_category_matching["cat_all_R@5"]
+        recall_10_category = recall_category_matching["cat_all_R@10"]
+        recall_1_turtle = recall_category_matching["cat_focus_R@1"]
+        recall_5_turtle = recall_category_matching["cat_focus_R@5"]
+        recall_10_turtle = recall_category_matching["cat_focus_R@10"]
         
-        self.log("categories_r@1", recall_1_category, prog_bar=True, logger=True)
-        self.log("categories_r@5", recall_5_category, prog_bar=True, logger=True)
-        self.log("categories_r@10", recall_10_category, prog_bar=False, logger=True)
+        self.log("category_all_r@1", recall_1_category, prog_bar=True, logger=True)
+        self.log("category_all_r@5", recall_5_category, prog_bar=True, logger=True)
+        self.log("category_all_r@10", recall_10_category, prog_bar=False, logger=True)
         
-        self.log("category_turtle_r@1", recall_1_turtle, prog_bar=True, logger=True)
-        self.log("category_turtle_r@5", recall_5_turtle, prog_bar=True, logger=True)
-        self.log("category_turtle_r@10", recall_10_turtle, prog_bar=False, logger=True)
+        self.log("category_focus_r@1", recall_1_turtle, prog_bar=True, logger=True)
+        self.log("category_focus_r@5", recall_5_turtle, prog_bar=True, logger=True)
+        self.log("category_focus_r@10", recall_10_turtle, prog_bar=False, logger=True)
         
 
         # clear the validation descriptors for the next epoch
@@ -297,7 +298,7 @@ class NanoCLIP(L.LightningModule):
 
         return results
     
-    def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
+    '''def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
         """
         Calcola Recall@K per ogni categoria:
         - Una retrieval è corretta se almeno un'immagine nelle top-k ha la stessa categoria del testo
@@ -352,10 +353,50 @@ class NanoCLIP(L.LightningModule):
                 results[f"recall@{k}_macro"] = 0.0
             results[f"recall@{k}_turtle"] /= 4
 
-        return results
+        return results'''
 
 
 
-
+    def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
+        """
+        Calcola:
+        - Recall@K globale: almeno un'immagine top-k ha stessa categoria del testo (tutto il dataset)
+        - Recall@K focus: come sopra ma solo per categorie in focus_id
+        """
+        text_embeddings = np.array(text_embeddings)
+        image_embeddings = np.array(image_embeddings)
+        categories = np.array(categories)
         
-    
+        assert text_embeddings.shape[0] == image_embeddings.shape[0] == len(categories)
+        
+        sim_matrix = cosine_similarity(text_embeddings, image_embeddings)
+        top_k_indices = np.argsort(-sim_matrix, axis=1)  # descending order
+        results = {}
+        
+        # 1. Calcolo GLOBALE (tutto il dataset)
+        n_total = len(text_embeddings)
+        for k in k_values:
+            correct = 0
+            for i in range(n_total):
+                query_cat = categories[i]
+                retrieved_cats = categories[top_k_indices[i, :k]]
+                if query_cat in retrieved_cats:
+                    correct += 1
+            results[f"cat_all_R@{k}"] = correct / n_total
+        
+        # 2. Calcolo FOCUS (solo categorie specificate)
+        if hasattr(self, 'focus_id'):
+            focus_mask = np.isin(categories, self.focus_id)
+            focus_indices = np.where(focus_mask)[0]
+            n_focus = len(focus_indices)
+            
+            for k in k_values:
+                correct = 0
+                for i in focus_indices:
+                    query_cat = categories[i]
+                    retrieved_cats = categories[top_k_indices[i, :k]]
+                    if query_cat in retrieved_cats:
+                        correct += 1
+                results[f"cat_focus_R@{k}"] = correct / n_focus if n_focus > 0 else 0.0
+        
+        return results

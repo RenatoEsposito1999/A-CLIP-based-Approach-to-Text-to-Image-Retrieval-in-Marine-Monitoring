@@ -248,7 +248,14 @@ class Custom_dataset(Dataset):
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
         print("dolphine: ",len(self.imgs_dolphine))
-        print("coco: ", len(self.imgs_COCO))
+        tmp = defaultdict(int)
+        for img_name in self.imgs_COCO:
+            tmp[self.captions_COCO[img_name][1]]+=1
+        #print(tmp)
+        for k, v in self.category_json.items():
+            if v[0] in tmp:
+                print(k,tmp[v[0]])
+        
         
         
         
