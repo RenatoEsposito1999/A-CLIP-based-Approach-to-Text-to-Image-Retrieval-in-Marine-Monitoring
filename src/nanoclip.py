@@ -54,10 +54,13 @@ class NanoCLIP(L.LightningModule):
         self.img_encoder = ImageEncoder(self.embed_size, self.img_model, unfreeze_n_blocks)
         self.txt_encoder = TextEncoder(self.embed_size, self.txt_model, unfreeze_n_blocks)
         self.loss_fn = SupervisedContrastiveLoss(temperature=0.05)
-        
+        self.focus_id = []
         with open("/workspace/text-to-image-retrivial/datasets/annotations/category_info.json", "r") as f:
             data = json.load(f)
-            self.focus_id.append(data["turtle"][0], data["dolphin"][0], data["sea"][0], data["debris"][0])
+            self.focus_id.append(data["turtle"][0])
+            self.focus_id.append(data["dolphin"][0])
+            self.focus_id.append(data["sea"][0])
+            self.focus_id.append(data["debris"][0])
         
     
     def configure_optimizers(self):
@@ -178,7 +181,7 @@ class NanoCLIP(L.LightningModule):
         # use faiss to calculate recall, images are gallery and texts are queries
         #recall_1, recall_5, recall_10 = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10])
         #recall_list_all, recall_list_turtle = self._calculate_recall(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
-        recall_exactly_matching = self.compute_text_to_image_recall_exactly_matching(img_descriptors, txt_descriptors, labels, k_values=[1, 5, 10], flags=flag_descriptors)
+        recall_exactly_matching = self.compute_text_to_image_recall_exactly_matching(img_descriptors, txt_descriptors, k_values=[1, 5, 10], categories=flag_descriptors)
         recall_1_all_exactly_matching = recall_exactly_matching["recall@1"]
         recall_5_all_exactly_matching = recall_exactly_matching["recall@5"]
         recall_10_all_exactly_matching = recall_exactly_matching["recall@10"]
@@ -192,6 +195,23 @@ class NanoCLIP(L.LightningModule):
         self.log("exactly_turtle_r@1", recall_1_turtle_exactly_matching, prog_bar=True, logger=True)
         self.log("exactly_turtle_r@5", recall_5_turtle_exactly_matching, prog_bar=True, logger=True)
         self.log("exactly_turtle_r@10", recall_10_turtle_exactly_matching, prog_bar=False, logger=True)
+        
+        recall_category_matching = self.compute_recall_per_category_loose(img_descriptors, txt_descriptors, k_values=[1, 5, 10], categories=flag_descriptors)
+        recall_1_category = recall_category_matching["recall@1_macro"]
+        recall_5_category = recall_category_matching["recall@5_macro"]
+        recall_10_category = recall_category_matching["recall@10_macro"]
+        recall_1_turtle = recall_category_matching["recall@1_turtle"]
+        recall_5_turtle = recall_category_matching["recall@5_turtle"]
+        recall_10_turtle = recall_category_matching["recall@10_turtle"]
+        
+        self.log("categories_r@1", recall_1_category, prog_bar=True, logger=True)
+        self.log("categories_r@5", recall_5_category, prog_bar=True, logger=True)
+        self.log("categories_r@10", recall_10_category, prog_bar=False, logger=True)
+        
+        self.log("category_turtle_r@1", recall_1_turtle, prog_bar=True, logger=True)
+        self.log("category_turtle_r@5", recall_5_turtle, prog_bar=True, logger=True)
+        self.log("category_turtle_r@10", recall_10_turtle, prog_bar=False, logger=True)
+        
 
         # clear the validation descriptors for the next epoch
         self.validation_descriptors.clear()
@@ -269,7 +289,7 @@ class NanoCLIP(L.LightningModule):
             results[f"recall@{k}"] = np.mean(correct)
 
         # Calcolo recall@k per categoria specifica (usando stessi indici)
-            mask = (categories == self.focus_id)
+            mask = np.isin(categories, self.focus_id)
             indices = np.where(mask)[0]
             for k in k_values:
                 correct = [i in top_k_indices[i, :k] for i in indices]
@@ -277,19 +297,14 @@ class NanoCLIP(L.LightningModule):
 
         return results
     
-    def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, categories, k_values=[1, 5, 10]):
+    def compute_recall_per_category_loose(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
         """
         Calcola Recall@K per ogni categoria:
-        - Retrieval è considerata corretta se almeno un'immagine nelle top-k ha la stessa categoria del testo
-
-        Args:
-            text_embeddings (np.ndarray): shape (N, D)
-            image_embeddings (np.ndarray): shape (N, D)
-            categories (List[str]): categoria di ogni coppia immagine-testo
-            k_values (List[int]): valori di k da considerare
+        - Una retrieval è corretta se almeno un'immagine nelle top-k ha la stessa categoria del testo
+        - Include macro-media delle recall per k
 
         Returns:
-            dict: {"recall@1_turtle": ..., "recall@5_cat": ..., ...}
+            dict: {"recall@1_turtle": ..., ..., "recall@1_macro": ...}
         """
         text_embeddings = np.array(text_embeddings)
         image_embeddings = np.array(image_embeddings)
@@ -303,6 +318,8 @@ class NanoCLIP(L.LightningModule):
         results = {}
         unique_categories = np.unique(categories)
 
+        per_k_macro = {k: [] for k in k_values}  # accumula per macro-media
+
         for cat in unique_categories:
             text_indices = np.where(categories == cat)[0]
             if len(text_indices) == 0:
@@ -311,13 +328,32 @@ class NanoCLIP(L.LightningModule):
             for k in k_values:
                 correct = 0
                 for i in text_indices:
+                    if cat in self.focus_id:
+                        results[f"recall@{k}_turtle"] = 0
+                    else:
+                        results[f"recall@{k}_{cat}"] = 0
+                    
                     retrieved_image_indices = top_k_indices[i, :k]
                     retrieved_categories = categories[retrieved_image_indices]
                     if cat in retrieved_categories:
                         correct += 1
-                results[f"recall@{k}_{cat}"] = correct / len(text_indices)
+                recall = correct / len(text_indices)
+                if cat in self.focus_id:
+                    results[f"recall@{k}_turtle"] += recall
+                else:
+                    results[f"recall@{k}_{cat}"] = recall
+                per_k_macro[k].append(recall)
+
+        # Calcolo macro-media per ogni k
+        for k in k_values:
+            if per_k_macro[k]:
+                results[f"recall@{k}_macro"] = np.mean(per_k_macro[k])
+            else:
+                results[f"recall@{k}_macro"] = 0.0
+            results[f"recall@{k}_turtle"] /= 4
 
         return results
+
 
 
 

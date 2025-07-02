@@ -32,8 +32,7 @@ class SupervisedContrastiveLoss(nn.Module):
     
         # Imposta a 0 gli elementi sulla diagonale (non confrontiamo un esempio con se stesso)
         #target.fill_diagonal_(0)
-        print(flags)
-        print(target)
+       
     
         return target
 
