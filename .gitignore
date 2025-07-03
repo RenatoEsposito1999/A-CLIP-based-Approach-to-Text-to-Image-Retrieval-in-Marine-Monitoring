@@ -96,3 +96,5 @@ COCO
 flickr30k_images
 Train_cropped
 checkpoint*
+gpu.err
+gpu.out

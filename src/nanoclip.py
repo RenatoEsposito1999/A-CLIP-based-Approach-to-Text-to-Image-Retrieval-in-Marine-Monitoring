@@ -112,6 +112,11 @@ class NanoCLIP(L.LightningModule):
         TextEncoder  ──┘
         """
         images, captions, masks, flag = batch
+        print("INIZIO training_step", flush=True)  # <-- Aggiungi flush=True
+        print(flag, flush=True)
+        print("esco")
+        exit()
+        #images, captions, masks, flag = batch
  
         if len(captions.shape) == 3: # flatten captions to (batch_size*nb_caps, cap_len) cuz we have multiple captions per image
             B, nb_captions, cap_len = captions.shape

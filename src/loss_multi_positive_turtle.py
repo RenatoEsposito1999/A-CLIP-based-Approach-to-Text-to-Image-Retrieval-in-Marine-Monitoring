@@ -20,6 +20,7 @@ class ContrastiveLoss(nn.Module):
         batch_size = image_embedding.shape[0]
         labels = torch.arange(batch_size, device=image_embedding.device)
 
+
         # caso multi-caption
         if len(text_embedding.shape) == 3:
             num_captions = text_embedding.shape[1]

@@ -6,7 +6,7 @@ Using cache found in /root/.cache/torch/hub/facebookresearch_dinov2_main
   warnings.warn("xFormers is available (Attention)")
 /root/.cache/torch/hub/facebookresearch_dinov2_main/dinov2/layers/block.py:33: UserWarning: xFormers is available (Block)
   warnings.warn("xFormers is available (Block)")
-  0%|          | 0/58304 [00:00<?, ?it/s]100%|██████████| 58304/58304 [00:00<00:00, 1126534.37it/s]
+  0%|          | 0/58304 [00:00<?, ?it/s]100%|██████████| 58304/58304 [00:00<00:00, 1075441.75it/s]
 Using 16bit Automatic Mixed Precision (AMP)
 GPU available: True (cuda), used: True
 TPU available: False, using: 0 TPU cores
