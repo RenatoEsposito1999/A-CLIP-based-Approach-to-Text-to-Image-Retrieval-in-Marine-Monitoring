@@ -158,7 +158,7 @@ def train(batch_size, lr, dim, dev):
     
     checkpoint_cb = ModelCheckpoint(
         monitor="category_all_r@5",
-        filename="epoch=[{epoch:02d}]_recall@5=[{categories_r@5:.4f}]]",
+        filename="epoch=[{epoch:02d}]_recall@5=[{category_all_r@5:.4f}]]",
         auto_insert_metric_name=False,
         save_weights_only=True,
         save_top_k=1,
