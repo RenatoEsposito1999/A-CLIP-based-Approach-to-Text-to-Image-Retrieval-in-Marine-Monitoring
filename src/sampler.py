@@ -17,13 +17,14 @@ class ClassBalancedBatchSampler(Sampler):
         self.used_indices = set()
 
     def __iter__(self):
+        self.used_indices = set()
+        self.shuffled_class_indices = {k: random.sample(v, len(v)) for k, v in self.class_to_indices.items()}
         batches = []
         remaining = True
 
         while remaining:
             selected_classes = random.sample(self.class_list, self.classes_per_batch)
             batch = []
-
             for cls in selected_classes:
                 cls_indices = self.shuffled_class_indices[cls]
 
@@ -50,7 +51,6 @@ class ClassBalancedBatchSampler(Sampler):
 
             if len(self.used_indices) >= self.num_samples:
                 remaining = False
-
         return iter(batches)
 
     def __len__(self):

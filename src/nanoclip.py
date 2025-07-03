@@ -112,8 +112,7 @@ class NanoCLIP(L.LightningModule):
         TextEncoder  ──┘
         """
         images, captions, masks, flag = batch
-      
-        
+ 
         if len(captions.shape) == 3: # flatten captions to (batch_size*nb_caps, cap_len) cuz we have multiple captions per image
             B, nb_captions, cap_len = captions.shape
             B, nb_masks, mask_len = masks.shape

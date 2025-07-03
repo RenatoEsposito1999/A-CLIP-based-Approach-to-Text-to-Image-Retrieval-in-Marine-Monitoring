@@ -20,9 +20,29 @@ from src.nanoclip import NanoCLIP
 #from src.dataset import Flickr30k, CollateFlickr
 from src.custom_dataset_with_category import Custom_dataset, CollateFlickr
 from custom_utils.telegram_notification import send_telegram_notification
+from src.sampler import ClassBalancedBatchSampler
+from tqdm import tqdm
+from collections import defaultdict
+import torch
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
+'''def get_class_with_index(dataset):
+    class_to_indices = defaultdict(list)
+    for idx,item in enumerate(tqdm(dataset)):
+        _,_,cat_id = item
+        class_to_indices[cat_id].append(idx)
+    return class_to_indices'''
+def get_class_with_index(dataset):
+    from collections import defaultdict
+    class_to_indices = defaultdict(list)
+    
+    for idx, img_name in tqdm(enumerate(dataset.imgs), total=len(dataset.imgs)):
+        category = dataset.captions[img_name][1]
+        class_to_indices[category].append(idx)
+    
+    return dict(class_to_indices)
 
+        
 def train(batch_size, lr, dim, dev):
     
     seed_everything(seed=20241203, workers=True)
@@ -51,16 +71,43 @@ def train(batch_size, lr, dim, dev):
     )
     
     # data augmentation during training
-    train_transform = T.Compose([
-        T.RandomRotation(15),
-        T.RandomResizedCrop((224, 224), scale=(0.8, 1.0), interpolation=3),
-        T.RandomHorizontalFlip(0.5),
-        T.RandomVerticalFlip(0.1),
-        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
+    generic_ransform = T.Compose([
+        #T.RandomRotation(15),
+        #T.RandomResizedCrop((224, 224), scale=(0.8, 1.0), interpolation=3),
+        #T.RandomHorizontalFlip(0.5),
+        #T.RandomVerticalFlip(0.1),
+        #T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
+        T.Resize((224, 224)),
         T.ToTensor(),
         T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+
+    train_heavy_transform = T.Compose([
+    # Ridimensionamento e crop più aggressivo (range più ampio)
+    T.RandomResizedCrop(224, scale=(0.6, 1.2), ratio=(0.7, 1.3)),  # Scala e ratio più estremi
     
+    # Flipping e rotazioni estreme
+    T.RandomHorizontalFlip(p=0.7),  # Probabilità più alta
+    T.RandomVerticalFlip(p=0.3),    # Aggiungi flip verticale
+    T.RandomRotation(degrees=30),   # Rotazione fino a 30 gradi
+    
+    # Distorsioni prospettiche/geometriche
+    T.RandomPerspective(distortion_scale=0.4, p=0.5),  # Effetto "warp"
+    T.RandomAffine(degrees=0, translate=(0.2, 0.2)),   # Traslazioni casuali
+    T.ToTensor(),
+    # Gaussian Blur di PyTorch
+    T.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),   # Sostituisce il PIL ImageFilter
+    
+    # Alterazioni cromatiche pesanti
+    T.ColorJitter(
+        brightness=0.4,  # Variazione più forte di luminosità
+        contrast=0.4,    # Contrasto più marcato
+        saturation=0.3,  # Saturazione più variabile
+        hue=0.1          # Tonalità più ampia (max consentito è 0.5)
+    ),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
     # no data augmentation during validation
     valid_transform = T.Compose([
         T.Resize((224, 224)),
@@ -73,26 +120,22 @@ def train(batch_size, lr, dim, dev):
     val_dataset = Flickr30k('./datasets/flickr30k', split='val', img_transform=valid_transform)'''
     print("Train dataset")
     print("-"*15)
-    train_dataset = Custom_dataset('./datasets/', split='train', img_transform=train_transform)
+    train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
     print("-"*15)
     print("Val dataset")
-    val_dataset = Custom_dataset('./datasets/', split='val', img_transform=train_transform)
+    val_dataset = Custom_dataset('./datasets/', split='val', generic_transform=generic_ransform, is_val=True)
     print("-"*15)
  
     # use the same tokenizer as the one used in the text model.
     tokenizer = AutoTokenizer.from_pretrained(txt_model)
-
-    '''
-    sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=256, classes_per_batch=8)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_sampler=sampler, num_workers=4)
-
-    '''
-
-
+    class_to_indices = get_class_with_index(train_dataset)
+    sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
+    
     train_dataloader = DataLoader(
         train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True, 
+        #batch_size=batch_size, 
+        #shuffle=True,
+        batch_sampler = sampler, 
         num_workers=4, 
         pin_memory=True, 
         collate_fn=CollateFlickr(tokenizer, max_length=80, captions_to_use='first') # captions_to_use='random' or 'first' or 'all'
@@ -147,6 +190,7 @@ def train(batch_size, lr, dim, dev):
         fast_dev_run=dev,
         enable_model_summary=True,
     )
+    print(len(train_dataloader))
     print("START TRAINING")
     #send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_VINCENZO)
     #send_telegram_notification(message="Training iniziato!", CHAT_ID=CHAT_ID_RENATO)

@@ -16,6 +16,7 @@ from PIL import Image
 import random
 import pandas as pd
 import json
+from torchvision import transforms as T
 
 class Custom_dataset(Dataset):
     """ 
@@ -24,7 +25,8 @@ class Custom_dataset(Dataset):
     The images are in the flickr30k_images folder.
     The captions are in the captions.txt file.
     """
-    def __init__(self, base_path, split='train', img_transform=None, txt_transform=None):
+
+    def __init__(self, base_path, split='train', turtle_transform=None, txt_transform=None, generic_transform=None, is_val = False):
         # make sur flickr30k_images folder exists in the base_path
         base_path = pathlib.Path(base_path)
         img_dir = base_path / "images"
@@ -46,9 +48,17 @@ class Custom_dataset(Dataset):
         if not img_dir.exists():
             raise ValueError(f"Cannot find the flickr30k_images folder in {base_path}. Make sure to download the dataset.")
         
-        self.img_dir = img_dir
-        self.img_transform = img_transform
+        
+        self.turtle_transform = turtle_transform
+        self.generic_transform = generic_transform
+        if self.generic_transform is None:
+            self.generic_transform  = T.Compose([
+                        T.Resize((224, 224)),
+                        T.ToTensor(),
+                        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                    ])
         self.txt_transform = txt_transform
+        self.is_val = is_val
         
         self.split = split
         with open(annotations_category, "r") as f:
@@ -273,8 +283,16 @@ class Custom_dataset(Dataset):
     def __getitem__(self, index):
         img_name = self.imgs[index]
         img = Image.open(img_name).convert('RGB')
-        if self.img_transform:
-            img = self.img_transform(img)
+        if self.is_val:
+            img = self.generic_transform(img)
+        else:
+            if "cropped" in str(img_name):
+                img = self.turtle_transform(img)
+            else:
+                img = self.generic_transform(img)
+            
+        '''if self.img_transform:
+            img = self.img_transform(img)'''
         captions = self.captions[img_name][0]
      
         category = self.captions[img_name][1]
