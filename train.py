@@ -42,7 +42,7 @@ def get_class_with_index(dataset):
     
     return dict(class_to_indices)
 
-        
+
 def train(batch_size, lr, dim, dev):
     
     seed_everything(seed=20241203, workers=True)

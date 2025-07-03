@@ -1,73 +1,57 @@
+Trainable parameters: 14,396,672
+Total parameters: 44,819,072
 Train dataset
 ---------------
-turtle:  21412
-debris:  544
-sea:  3755
-dolphine:  484
-furniture 3032
-animal 4442
-person 6834
-vehicle 3746
-kitchen 1779
-electronic 1376
-indoor 1952
-appliance 891
-food 2025
-sports 2701
-accessory 1664
-outdoor 1667
+turtle:  1338
+debris:  34
+sea:  234
+dolphine:  30
+furniture 186
+animal 268
+person 431
+vehicle 261
+kitchen 103
+electronic 79
+indoor 122
+appliance 40
+food 122
+sports 166
+accessory 121
+outdoor 107
 ---------------
 Validation dataset
 turtle:  2677
 debris:  68
 sea:  469
 dolphine:  60
-furniture 396
-animal 594
-person 852
-vehicle 446
-kitchen 220
-electronic 149
-indoor 249
-appliance 120
-food 244
+furniture 365
+animal 535
+person 845
+vehicle 478
+kitchen 240
+electronic 173
+indoor 245
+appliance 121
+food 260
 sports 324
-accessory 204
-outdoor 216
+accessory 221
+outdoor 207
 ---------------
-START TRAINING
-228 batches x epoch
-┏━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━┓
-┃   ┃ Name        ┃ Type                      ┃ Params ┃ Mode  ┃
-┡━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━┩
-│ 0 │ img_encoder │ ImageEncoder              │ 22.1 M │ train │
-│ 1 │ txt_encoder │ TextEncoder               │ 22.7 M │ train │
-│ 2 │ loss_fn     │ SupervisedContrastiveLoss │      0 │ train │
-└───┴─────────────┴───────────────────────────┴────────┴───────┘
-Trainable params: 14.4 M                                                                                                                                                                                                   
-Non-trainable params: 30.4 M                                                                                                                                                                                               
-Total params: 44.8 M                                                                                                                                                                                                       
-Total estimated model params size (MB): 179                                                                                                                                                                                
-Modules in train mode: 204                                                                                                                                                                                                 
-Modules in eval mode: 120                                                                                                                                                                                                  
-vincenzo
-vincenzo
-INIZIO training_step
-tensor([ 3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  5,  5,
-         5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  5,  4,  4,  4,  4,
-         4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4,  4, 12, 12, 12, 12, 12, 12,
-        12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 10, 10, 10, 10, 10, 10, 10, 10,
-        10, 10, 10, 10, 10, 10, 10, 10,  7,  7,  7,  7,  7,  7,  7,  7,  7,  7,
-         7,  7,  7,  7,  7,  7, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14,
-        14, 14, 14, 14, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
-        11, 11,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,  9,
-        13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13, 13,  1,  1,
-         1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  8,  8,  8,  8,
-         8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  0,  0,  0,  0,  0,  0,
-         0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  6,  6,  6,  6,  6,  6,  6,  6,
-         6,  6,  6,  6,  6,  6,  6,  6,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
-         2,  2,  2,  2,  2,  2, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15,
-        15, 15, 15, 15], device='cuda:0')
-esco
-Epoch 0/49                                          0/228 0:00:03 • -:--:-- 0.00it/s v_num: 42.000 Val_loss: 9.675 Val_batch_acc: 0.007 category_all_r@1: 0.092 category_all_r@5: 0.244 category_focus_r@1: 0.000          
-                                                                                     category_focus_r@5: 0.014                                                                                                             
+Start training
+Logits i2t std: 0.11748121678829193
+Logits i2t std: 0.09652342647314072
+Logits i2t std: 0.0867413803935051
+Logits i2t std: 0.08828957378864288
+Logits i2t std: 0.07575620710849762
+Logits i2t std: 0.0743069127202034
+Logits i2t std: 0.0689263716340065
+Logits i2t std: 0.0698896273970604
+Logits i2t std: 0.06421297788619995
+Logits i2t std: 0.0646984726190567
+Logits i2t std: 0.060169268399477005
+Logits i2t std: 0.06144469603896141
+Logits i2t std: 0.05068207532167435
+Logits i2t std: 0.059522468596696854
+Logits i2t std: 0.06056441739201546
+Logits i2t std: 0.0622071772813797
+Epoch 1/50, Loss: 5.9171

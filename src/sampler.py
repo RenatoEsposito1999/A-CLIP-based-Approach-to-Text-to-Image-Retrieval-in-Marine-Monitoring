@@ -47,12 +47,7 @@ class ClassBalancedBatchSampler(Sampler):
                     used_ptr[cls] = self.samples_per_class
                     class_distribution[cls] += self.samples_per_class
 
-            '''# DEBUG: Stampa la distribuzione (FORZATA con flush)
-            print("\n=== DEBUG BATCH ===", flush=True)
-            print(f"Classi selezionate: {selected_classes}", flush=True)
-            for cls, count in class_distribution.items():
-                print(f"Classe {cls}: {count} campioni", flush=True)
-            print("------------------", flush=True)'''
+            
 
             yield batch
 

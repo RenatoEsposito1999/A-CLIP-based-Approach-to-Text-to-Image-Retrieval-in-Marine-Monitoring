@@ -98,3 +98,5 @@ Train_cropped
 checkpoint*
 gpu.err
 gpu.out
+datasets
+old_csv

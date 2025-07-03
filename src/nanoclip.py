@@ -12,15 +12,14 @@ import faiss
 import numpy as np
 import lightning as L
 #from src.loss import ContrastiveLoss
-from src.loss_multi_positive_turtle import ContrastiveLoss
-from src.supervised_contrastive_loss import SupervisedContrastiveLoss
+
 from src.models import ImageEncoder, TextEncoder
 import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+import torch.nn as nn
 
-
-class NanoCLIP(L.LightningModule):
+class NanoCLIP(nn.Module):
     """ 
     This class defines the pipeline for the nanoCLIP model.
     
@@ -36,6 +35,7 @@ class NanoCLIP(L.LightningModule):
         weight_decay=0.0001,
         milestones=[5, 10, 15],
         lr_mult=0.1,
+        loss_fn=None,
     ):
         super().__init__()
         
@@ -49,11 +49,11 @@ class NanoCLIP(L.LightningModule):
         self.milestones = milestones
         self.lr_mult = lr_mult
         
-        self.save_hyperparameters() # save all hyperparameters to hparams file (for reproducibility) 
+        #self.save_hyperparameters() # save all hyperparameters to hparams file (for reproducibility) 
         
         self.img_encoder = ImageEncoder(self.embed_size, self.img_model, unfreeze_n_blocks)
         self.txt_encoder = TextEncoder(self.embed_size, self.txt_model, unfreeze_n_blocks)
-        self.loss_fn = SupervisedContrastiveLoss(temperature=0.05)
+        self.loss_fn = loss_fn
         self.focus_id = []
         with open("/workspace/text-to-image-retrivial/datasets/annotations/category_info.json", "r") as f:
             data = json.load(f)
@@ -63,7 +63,7 @@ class NanoCLIP(L.LightningModule):
             self.focus_id.append(data["debris"][0])
         
     
-    def configure_optimizers(self):
+    '''def configure_optimizers(self):
         """
         Define the optimizer and the learning rate scheduler.
         """
@@ -73,9 +73,9 @@ class NanoCLIP(L.LightningModule):
         ]
         optimizer = torch.optim.AdamW(optimizer_params)
         scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.milestones, gamma=self.lr_mult)    
-        return [optimizer], [scheduler]
+        return [optimizer], [scheduler]'''
     
-    def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
+    '''def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
         """
         Define how a single optimization step is executed.
         """
@@ -87,7 +87,7 @@ class NanoCLIP(L.LightningModule):
                 pg["lr"] = lr_scale * initial_lr
 
         optimizer.step(closure=optimizer_closure)
-        self.log('_LR', optimizer.param_groups[-1]['lr'], prog_bar=False, logger=True)
+        self.log('_LR', optimizer.param_groups[-1]['lr'], prog_bar=False, logger=True)'''
     
     def forward(self, image, captions, masks):
         """ 
@@ -103,7 +103,7 @@ class NanoCLIP(L.LightningModule):
         
         return image_embedding, text_embedding
     
-    def training_step(self, batch, batch_idx):
+    '''def training_step(self, batch, batch_idx=None):
         """ 
         Define a single training step (one batch pass).
         
@@ -117,7 +117,6 @@ class NanoCLIP(L.LightningModule):
         print("esco")
         exit()
         #images, captions, masks, flag = batch
- 
         if len(captions.shape) == 3: # flatten captions to (batch_size*nb_caps, cap_len) cuz we have multiple captions per image
             B, nb_captions, cap_len = captions.shape
             B, nb_masks, mask_len = masks.shape
@@ -135,10 +134,9 @@ class NanoCLIP(L.LightningModule):
         
         loss, batch_accuracy = self.loss_fn(img_descriptors, txt_descriptors, flag)
         
-        
         self.log("Train_loss", loss, prog_bar=True, logger=True)
         self.log("Train_batch_acc", batch_accuracy, prog_bar=True, logger=True)
-        return loss
+        return loss'''
     
     def on_validation_epoch_start(self):
         self.validation_descriptors = {"img": [], "txt": [], "flag": []}
