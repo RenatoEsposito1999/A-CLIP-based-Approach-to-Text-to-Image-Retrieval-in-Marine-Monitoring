@@ -100,3 +100,4 @@ gpu.err
 gpu.out
 datasets
 old_csv
+*.zip
