@@ -4,7 +4,7 @@ Total parameters: 152,278,785
 Train dataset
 ---------------
 {'turtle': -1, 'debris': -2, 'sea': -3, 'dolphin': -4}
-turtle:  14429
+turtle:  6983
 debris:  544
 sea:  3755
 dolphine:  484
@@ -13,7 +13,7 @@ flickr30 25426
 ---------------
 Validation dataset
 {'turtle': -1, 'debris': -2, 'sea': -3, 'dolphin': -4}
-turtle:  1804
+turtle:  873
 debris:  68
 sea:  469
 dolphine:  60
@@ -21,7 +21,103 @@ coco 4014
 flickr30 3178
 ---------------
 Start training
-Epoch 1/50, Loss: 2.0211
-Gradient Norm: 6.828553064260632
-Epoch 2/50, Loss: 1.8480
-Gradient Norm: 11.319926206953824
+Epoch 1/50, Loss: 2.3854
+Gradient Norm: 11.518196599557996
+Epoch 2/50, Loss: 1.4383
+Gradient Norm: 12.387804050231352
+Epoch 3/50, Loss: 1.3250
+Gradient Norm: 12.864451627945527
+Epoch 4/50, Loss: 1.2663
+Gradient Norm: 12.971229819348082
+Epoch 5/50, Loss: 1.2087
+Gradient Norm: 15.5917970740702
+Epoch 6/50, Loss: 1.1512
+Gradient Norm: 12.056954691652209
+Epoch 7/50, Loss: 1.1024
+Gradient Norm: 9.49488857993856
+Epoch 8/50, Loss: 1.0640
+Gradient Norm: 10.601897980552167
+Epoch 9/50, Loss: 1.0376
+Gradient Norm: 8.692834306508303
+Epoch 10/50, Loss: 1.0159
+Gradient Norm: 8.79887422779575
+Epoch 11/50, Loss: 0.9981
+Gradient Norm: 7.369290713220835
+Epoch 12/50, Loss: 0.9847
+Gradient Norm: 8.79318452323787
+Epoch 13/50, Loss: 0.9743
+Gradient Norm: 7.076735518407077
+Epoch 14/50, Loss: 0.9662
+Gradient Norm: 7.6840288382954895
+Epoch 15/50, Loss: 0.9583
+Gradient Norm: 5.852005499182269
+Epoch 16/50, Loss: 0.9548
+Gradient Norm: 5.694690444506705
+Epoch 17/50, Loss: 0.9486
+Gradient Norm: 5.848152475198731
+Epoch 18/50, Loss: 0.9450
+Gradient Norm: 4.6737492743413895
+Epoch 19/50, Loss: 0.9384
+Gradient Norm: 5.49369907239452
+Epoch 20/50, Loss: 0.9355
+Gradient Norm: 5.666485240450129
+Epoch 21/50, Loss: 0.9314
+Gradient Norm: 3.90520207490772
+Epoch 22/50, Loss: 0.9294
+Gradient Norm: 5.231413221685216
+Epoch 23/50, Loss: 0.9276
+Gradient Norm: 5.687721284106374
+Epoch 24/50, Loss: 0.9250
+Gradient Norm: 3.8818897812161595
+Epoch 25/50, Loss: 0.9234
+Gradient Norm: 4.915209139231592
+Epoch 26/50, Loss: 0.9207
+Gradient Norm: 3.669388742884621
+Epoch 27/50, Loss: 0.9175
+Gradient Norm: 4.421593230916187
+Epoch 28/50, Loss: 0.9163
+Gradient Norm: 3.496354257222265
+Epoch 29/50, Loss: 0.9149
+Gradient Norm: 4.68902808893472
+Epoch 30/50, Loss: 0.9128
+Gradient Norm: 4.898081942694262
+Epoch 31/50, Loss: 0.9134
+Gradient Norm: 5.371057912474498
+Epoch 32/50, Loss: 0.9108
+Gradient Norm: 3.771167404251173
+Epoch 33/50, Loss: 0.9102
+Gradient Norm: 3.7798447692766786
+Epoch 34/50, Loss: 0.9085
+Gradient Norm: 3.431443683686666
+Epoch 35/50, Loss: 0.9073
+Gradient Norm: 3.651063703931868
+Epoch 36/50, Loss: 0.9072
+Gradient Norm: 2.9163441923446953
+Epoch 37/50, Loss: 0.9063
+Gradient Norm: 3.671967177418992
+Epoch 38/50, Loss: 0.9049
+Gradient Norm: 3.032257538754493
+Epoch 39/50, Loss: 0.9047
+Gradient Norm: 3.866299178218469
+Epoch 40/50, Loss: 0.9061
+Gradient Norm: 2.3390508878510445
+Epoch 41/50, Loss: 0.9046
+Gradient Norm: 2.6883176577975973
+Epoch 42/50, Loss: 0.9027
+Gradient Norm: 4.425873254192993
+Epoch 43/50, Loss: 0.9037
+Gradient Norm: 3.165623847162351
+Epoch 44/50, Loss: 0.9040
+Gradient Norm: 3.979024112224579
+Epoch 45/50, Loss: 0.9032
+Gradient Norm: 2.9881470147520304
+Epoch 46/50, Loss: 0.9033
+Gradient Norm: 2.105180750368163
+Epoch 47/50, Loss: 0.9030
+Gradient Norm: 3.3025778736919165
+Epoch 48/50, Loss: 0.9028
+Gradient Norm: 4.747543119126931
+Epoch 49/50, Loss: 0.9016
+Gradient Norm: 3.285954007646069
+Epoch 50/50, Loss: 0.9028
+Gradient Norm: 2.533601232804358

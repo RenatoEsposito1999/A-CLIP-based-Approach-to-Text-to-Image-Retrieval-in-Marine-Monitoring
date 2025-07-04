@@ -42,7 +42,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         annotations_debris = annotations_dir / "cropped_debris.csv"
         annotations_sea = annotations_dir / "cropped_sea.csv"
         annotations_dolphine = annotations_dir / "cropped_dolphine.csv"
-        annotations_other_turtle = annotations_dir / "turtle_other.csv"
+        annotations_other_turtle = annotations_dir / "output.csv"
         annotations_category = annotations_dir / "category_info.json"
         
         if not img_dir.exists():
@@ -91,17 +91,17 @@ class Custom_dataset_category_only_turtle(Dataset):
         '''
         {key: "path_image", value: [caption, category]}
         '''
-        self.df = pd.read_csv(annotations_turtle)
+        '''self.df = pd.read_csv(annotations_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_turtle[img_dir_turtle / image].append(caption)
-            self.captions_turtle[img_dir_turtle / image].append(-1)
+            self.captions_turtle[img_dir_turtle / image].append(-1)'''
         
-        '''self.df = pd.read_csv(annotations_other_turtle)
+        self.df = pd.read_csv(annotations_other_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_turtle[img_dir_other_turtle / image].append(caption)
-            self.captions_turtle[img_dir_other_turtle / image].append(category)'''
+            self.captions_turtle[img_dir_other_turtle / image].append(-1)
         
         #START TO INSERT DEBRIS          
         self.captions_debris = defaultdict(list)
@@ -212,11 +212,11 @@ class Custom_dataset_category_only_turtle(Dataset):
         print("coco", len(self.imgs_COCO))
         print("flickr30", len(self.imgs_flickr30))
         
-        #self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
-        self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
+        self.imgs = self.imgs_flickr30 + self.imgs_turtle 
+        #self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
-        #self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
-        self.captions = self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
+        self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
+        #self.captions = self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
 
     def __len__(self):
@@ -310,6 +310,7 @@ class Collate_fn_clip:
             text=captions,
             return_tensors="pt",
             padding="longest",
+            truncation=True
         )
         images = encoding["pixel_values"]
         captions_ids = encoding["input_ids"]

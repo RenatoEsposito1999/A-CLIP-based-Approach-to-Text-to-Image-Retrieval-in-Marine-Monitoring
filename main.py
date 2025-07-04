@@ -2,7 +2,7 @@ import argparse
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
-from transformers import AutoTokenizer, AutoProcessor
+from transformers import AutoTokenizer, AutoProcessor, get_cosine_schedule_with_warmup
 from custom_utils.telegram_notification import send_telegram_notification
 from collections import defaultdict
 from tqdm import tqdm
@@ -18,17 +18,17 @@ CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
 generic_ransform = T.Compose([
-        T.RandomRotation(15),
-        T.RandomResizedCrop((224, 224), scale=(0.8, 1.0), interpolation=3),
-        T.RandomHorizontalFlip(0.5),
-        T.RandomVerticalFlip(0.1),
-        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
         T.Resize((224, 224)),
+        #T.RandomRotation(15),
+        #T.RandomResizedCrop((224, 224), scale=(0.8, 1.0), interpolation=3),
+        #T.RandomHorizontalFlip(0.5),
+        #T.RandomVerticalFlip(0.1),
+        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
         #T.ToTensor(),
         #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-train_heavy_transform = T.Compose([
+'''train_heavy_transform = T.Compose([
     # Ridimensionamento e crop più aggressivo (range più ampio)
     #T.RandomResizedCrop(224, scale=(0.6, 1.2), ratio=(0.7, 1.3)),  # Scala e ratio più estremi
     
@@ -52,13 +52,14 @@ train_heavy_transform = T.Compose([
         hue=0.1          # Tonalità più ampia (max consentito è 0.5)
     ),
     #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    ])'''
 
-'''train_heavy_transform = T.Compose([
+train_heavy_transform = T.Compose([
+    T.Resize((224, 224)),
     T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.),
-    T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-])'''
+    #T.ToTensor(),
+    #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
 def print_number_trainable_parameters(model):    
     total_params = sum(p.numel() for p in model.parameters())    
@@ -71,24 +72,37 @@ def print_names_trainable_parameters(model):
         if param.requires_grad:
             print(f"Nome: {name} | Trainabile: {param.requires_grad} | Shape: {param.shape}")
 
-def get_optimizer_and_scheduler(model,name_model, lr,weight_decay):
+def get_optimizer_and_scheduler(model,name_model, lr,weight_decay, tot_num_epochs, steps_per_epoch):
         """
         Define the optimizer and the learning rate scheduler.
         """
-        scheduler = None
         milestones=[5, 10, 15]
         lr_mult=0.1
+        #START DEFINITION OPTIMIZER
         if name_model == "nanoclip":
+            trainable_params_img = [p for p in model.img_encoder.parameters() if p.requires_grad]
+            trainable_params_text = [p for p in model.txt_encoder.parameters() if p.requires_grad]       
             optimizer_params = [
-                {"params": model.img_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
-                {"params": model.txt_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
+                {"params": trainable_params_img, "lr": lr, "weight_decay": weight_decay},
+                {"params": trainable_params_text, "lr": lr, "weight_decay": weight_decay},
             ]
         elif name_model == "clip":
+            trainable_params = [p for p in model.parameters() if p.requires_grad]
             optimizer_params = [
-                {"params": model.parameters(), "lr": lr, "weight_decay": weight_decay},
+                {"params": trainable_params, "lr": lr, "weight_decay": weight_decay},
             ]
         optimizer = torch.optim.AdamW(optimizer_params)
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=lr_mult)   
+        
+        #START DEFINITION COSINE SCHEDULER
+        warmup_ratio = 0.1
+        total_training_steps = tot_num_epochs * steps_per_epoch
+        num_warmup_steps = int(warmup_ratio*total_training_steps)
+        scheduler = get_cosine_schedule_with_warmup(
+            optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=total_training_steps
+        )
+        #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=lr_mult)   
         
         return optimizer, scheduler
 
@@ -101,7 +115,7 @@ def get_class_with_index(dataset):
     
     return dict(class_to_indices)
 
-def main(batch_size, lr, dim, device, wd, name_model):
+def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     writer = SummaryWriter(log_dir="logs/NanoCLIP")  # Sostituisci "experiment_name" con un 
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -165,11 +179,9 @@ def main(batch_size, lr, dim, device, wd, name_model):
     )
     
     print("Start training")
-    optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd)
-    train(model=model, dataloader=train_dataloader,n_epochs=50, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+    optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
+    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     writer.close()
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
@@ -181,7 +193,8 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
     parser.add_argument("--model", type=str, default="clip", help="Model name")
+    parser.add_argument("--n_epochs", type=int, default=50, help="number of epoch")
 
     args = parser.parse_args()
     
-    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd, name_model=args.model)
+    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd, name_model=args.model, n_epochs=args.n_epochs)

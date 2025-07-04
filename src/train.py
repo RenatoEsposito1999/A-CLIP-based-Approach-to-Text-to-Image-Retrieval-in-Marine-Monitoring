@@ -23,7 +23,6 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             masks = masks.to(device)
             cats = cats.to(device)
             img_embs,text_embs=model(images,captions,masks)
-            model.train()
             loss = loss_fn(text_embs,img_embs,cats)
             optimizer.zero_grad()
             loss.backward()
@@ -31,7 +30,7 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
         
             total_loss += loss.item()
             
-        scheduler.step()
+            scheduler.step()
         writer.add_scalar("Loss/train", total_loss / len(dataloader), epoch+1)
 
         print(f"Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
