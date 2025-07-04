@@ -8,9 +8,9 @@
 
 import torch
 import torch.nn.functional as F
-import faiss
+#import faiss
 import numpy as np
-import lightning as L
+#import lightning as L
 #from src.loss import ContrastiveLoss
 
 from src.models import ImageEncoder, TextEncoder

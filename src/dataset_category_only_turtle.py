@@ -18,7 +18,7 @@ import pandas as pd
 import json
 from torchvision import transforms as T
 
-class Custom_dataset(Dataset):
+class Custom_dataset_category_only_turtle(Dataset):
     """ 
     This class is specific to the Flickr30k dataset downloaded from: https://www.kaggle.com/datasets/eeshawn/flickr30k
     The dataset is composed of images and captions.
@@ -36,7 +36,7 @@ class Custom_dataset(Dataset):
         img_dir_other_turtle = img_dir / "turtle"
         
         annotations_dir = base_path / "annotations"
-        #annotations_flicker =  annotations_dir / "captionsFlicker.csv"
+        annotations_flicker =  annotations_dir / "captionsFlicker.txt"
         annotations_COCO = annotations_dir / "COCO_with_category.csv"
         annotations_turtle = annotations_dir / "cropped_turtle.csv"
         annotations_debris = annotations_dir / "cropped_debris.csv"
@@ -61,22 +61,29 @@ class Custom_dataset(Dataset):
         self.is_val = is_val
         
         self.split = split
-        with open(annotations_category, "r") as f:
-            self.category_json = json.load(f)
-        
+        category_info ={
+            "turtle": -1,
+            "debris": -2,
+            "sea": -3,
+            "dolphin": -4
+        }
+        print(category_info)
+        unique_category = 0
         # load all captions
         '''
             for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
         '''
         #START TO INSERT FLICKR30
-        #self.captions_flickr30 = defaultdict(lambda: [[], []])
+        self.captions_flickr30 = defaultdict(list)
         
-        '''with open(annotations_flicker, 'r') as f:
+        with open(annotations_flicker, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
-                self.captions_flickr30[img_dir_flicker / image][0].append(caption)
-                if len(self.captions_flickr30[img_dir_flicker / image][1])==0:
-                    self.captions_flickr30[img_dir_flicker / image][1].append(0)'''
+                if caption_number == "0":
+                    self.captions_flickr30[img_dir_flicker / image].append(caption)
+                    self.captions_flickr30[img_dir_flicker / image].append(unique_category)
+                    unique_category += 1
+                
         
         #START TO INSERT TURTLE (TURTLE AND OTHER TURTLE)    
         #self.captions_turtle = defaultdict( [[], []])
@@ -87,56 +94,51 @@ class Custom_dataset(Dataset):
         self.df = pd.read_csv(annotations_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_turtle[img_dir_turtle / image].append(caption)
-            self.captions_turtle[img_dir_turtle / image].append(category)
+            self.captions_turtle[img_dir_turtle / image].append(-1)
         
-        self.df = pd.read_csv(annotations_other_turtle)
+        '''self.df = pd.read_csv(annotations_other_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_turtle[img_dir_other_turtle / image].append(caption)
-            self.captions_turtle[img_dir_other_turtle / image].append(category)
+            self.captions_turtle[img_dir_other_turtle / image].append(category)'''
         
         #START TO INSERT DEBRIS          
         self.captions_debris = defaultdict(list)
         self.df = pd.read_csv(annotations_debris)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_debris[img_dir_turtle / image].append(caption)
-            self.captions_debris[img_dir_turtle / image].append(category)
+            self.captions_debris[img_dir_turtle / image].append(-2)
     
         #START TO INSERT SEA           
         self.captions_sea = defaultdict(list)
         self.df = pd.read_csv(annotations_sea)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_sea[img_dir_turtle / image].append(caption)
-            self.captions_sea[img_dir_turtle / image].append(category)
+            self.captions_sea[img_dir_turtle / image].append(-3)
             
         #START TO INSERT DOLPHINE        
         self.captions_dolphine = defaultdict(list)
         self.df = pd.read_csv(annotations_dolphine)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_dolphine[img_dir_turtle / image].append(caption)
-            self.captions_dolphine[img_dir_turtle / image].append(category)     
+            self.captions_dolphine[img_dir_turtle / image].append(-4)     
         #START TO INSERT COCO
         self.captions_COCO = defaultdict(list)
         self.df = pd.read_csv(annotations_COCO)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            category = self.category_json[category][0]
             self.captions_COCO[img_dir_COCO / image].append(caption)
-            self.captions_COCO[img_dir_COCO / image].append(category)
+            self.captions_COCO[img_dir_COCO / image].append(unique_category)
+            unique_category += 1
                 
                 
         # get all image names
-        #self.imgs_flickr30 = list(self.captions_flickr30.keys())
-        #random.shuffle(self.imgs_flickr30)
+        self.imgs_flickr30 = list(self.captions_flickr30.keys())
+        random.shuffle(self.imgs_flickr30)
         self.imgs_turtle = list(self.captions_turtle.keys())
         random.shuffle(self.imgs_turtle)
         self.imgs_debris = list(self.captions_debris.keys())
@@ -151,14 +153,14 @@ class Custom_dataset(Dataset):
         
         # split the dataset
         if split == 'train':
-            #self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
+            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
             self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
         elif split == 'val':
-            #self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
             #self.imgs_turtle = random.sample(self.imgs_turtle, 300)
             self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
@@ -166,7 +168,7 @@ class Custom_dataset(Dataset):
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
         elif split == "test":
-            #self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
+            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
             self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
             self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
@@ -207,17 +209,8 @@ class Custom_dataset(Dataset):
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
         print("dolphine: ",len(self.imgs_dolphine))
-        tmp = defaultdict(int)
-        for img_name in self.imgs_COCO:
-            tmp[self.captions_COCO[img_name][1]]+=1
-        #print(tmp)
-        for k, v in self.category_json.items():
-            if v[0] in tmp:
-                print(k,tmp[v[0]])
-        
-        
-        
-        
+        print("coco", len(self.imgs_COCO))
+        print("flickr30", len(self.imgs_flickr30))
         
         #self.imgs = self.imgs_flickr30 + self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
@@ -249,7 +242,7 @@ class Custom_dataset(Dataset):
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, category
 
-class Collate_fn:
+class Collate_fn_nanoclip:
     """    
         Collate class for the dataloader (to be called in the dataloader)
         This will be called for each batch of data
@@ -294,5 +287,35 @@ class Collate_fn:
             masks = captions['attention_mask'].squeeze(0)
         
         return images, captions_ids, masks, cats
+    
+    
+class Collate_fn_clip:
+    """    
+        Collate class for the dataloader (to be called in the dataloader)
+        This will be called for each batch of data
+        It will convert the list of images and captions into a single tensor
+        The captions will be tokenized and padded to the max_length 
+        The images will be stacked into a single tensor
+    """
+    def __init__(self, processor):
+        self.processor = processor
+        
+    def __call__(self, batch):
+        images, captions, cats = zip(*batch)
+        cats = torch.tensor(cats)
+        images = [image for image in images]
+        captions = [caption for caption in captions]
+        encoding = self.processor(
+            images=images,
+            text=captions,
+            return_tensors="pt",
+            padding="longest",
+        )
+        images = encoding["pixel_values"]
+        captions_ids = encoding["input_ids"]
+        masks = encoding["attention_mask"]
+        return images, captions_ids, masks, cats
+    
+    
 
 

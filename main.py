@@ -2,14 +2,16 @@ import argparse
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoProcessor
 from custom_utils.telegram_notification import send_telegram_notification
 from collections import defaultdict
 from tqdm import tqdm
 import torch
 from src.sampler import ClassBalancedBatchSampler
 from src.nanoclip import NanoCLIP
-from src.dataset import Custom_dataset, Collate_fn
+from src.CLIP_model import CLIP_model
+#from src.dataset import Custom_dataset, Collate_fn
+from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_nanoclip, Collate_fn_clip
 from src.loss import contrastiveLoss
 from src.train import train
 CHAT_ID_VINCENZO = "521260346"
@@ -22,8 +24,8 @@ generic_ransform = T.Compose([
         T.RandomVerticalFlip(0.1),
         T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
         T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        #T.ToTensor(),
+        #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
 train_heavy_transform = T.Compose([
@@ -38,9 +40,9 @@ train_heavy_transform = T.Compose([
     # Distorsioni prospettiche/geometriche
     T.RandomPerspective(distortion_scale=0.4, p=0.5),  # Effetto "warp"
     T.RandomAffine(degrees=0, translate=(0.2, 0.2)),   # Traslazioni casuali
-    T.ToTensor(),
+    #T.ToTensor(),
     # Gaussian Blur di PyTorch
-    T.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),   # Sostituisce il PIL ImageFilter
+    #T.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),   # Sostituisce il PIL ImageFilter
     
     # Alterazioni cromatiche pesanti
     T.ColorJitter(
@@ -49,26 +51,45 @@ train_heavy_transform = T.Compose([
         saturation=0.3,  # Saturazione più variabile
         hue=0.1          # Tonalità più ampia (max consentito è 0.5)
     ),
-    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-def print_trainable_parameters(model):    
+'''train_heavy_transform = T.Compose([
+    T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.),
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])'''
+
+def print_number_trainable_parameters(model):    
     total_params = sum(p.numel() for p in model.parameters())    
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
 
-def get_optimizer_and_scheduler(model, lr,weight_decay):
+
+def print_names_trainable_parameters(model):
+    for name, param in model.named_parameters():
+        if param.requires_grad:
+            print(f"Nome: {name} | Trainabile: {param.requires_grad} | Shape: {param.shape}")
+
+def get_optimizer_and_scheduler(model,name_model, lr,weight_decay):
         """
         Define the optimizer and the learning rate scheduler.
         """
+        scheduler = None
         milestones=[5, 10, 15]
         lr_mult=0.1
-        optimizer_params = [
-            {"params": model.img_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
-            {"params": model.txt_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
-        ]
+        if name_model == "nanoclip":
+            optimizer_params = [
+                {"params": model.img_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
+                {"params": model.txt_encoder.parameters(), "lr": lr, "weight_decay": weight_decay},
+            ]
+        elif name_model == "clip":
+            optimizer_params = [
+                {"params": model.parameters(), "lr": lr, "weight_decay": weight_decay},
+            ]
         optimizer = torch.optim.AdamW(optimizer_params)
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=lr_mult)    
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=lr_mult)   
+        
         return optimizer, scheduler
 
 def get_class_with_index(dataset):
@@ -80,45 +101,57 @@ def get_class_with_index(dataset):
     
     return dict(class_to_indices)
 
-def main(batch_size, lr, dim, device, wd):
+def main(batch_size, lr, dim, device, wd, name_model):
     writer = SummaryWriter(log_dir="logs/NanoCLIP")  # Sostituisci "experiment_name" con un 
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    txt_model = "sentence-transformers/all-MiniLM-L6-v2" # (~22M params)
-    
-    model = NanoCLIP(
-        txt_model=txt_model,
-        img_model="dinov2_vits14",  # 'dinov2_vitb14' (60M params) or 'dinov2_vits14' (~22M params)
-        unfreeze_n_blocks=4,        # unfreeze the last n blocks of both text and image encoders (for fine-tuning)
-        embed_size=dim,             # output dimension of the encoders
-        lr=lr,
-        weight_decay=4e-4,
-        warmup_epochs=5,
-        milestones=[10, 20, 30],
-        lr_mult=0.1,
-    )
-    print_trainable_parameters(model=model)
+    if name_model == "nanoclip":
+        txt_model = "sentence-transformers/all-MiniLM-L6-v2" # (~22M params)
+        
+        model = NanoCLIP(
+            txt_model=txt_model,
+            img_model="dinov2_vits14",  # 'dinov2_vitb14' (60M params) or 'dinov2_vits14' (~22M params)
+            unfreeze_n_blocks=4,        # unfreeze the last n blocks of both text and image encoders (for fine-tuning)
+            embed_size=dim,             # output dimension of the encoders
+            lr=lr,
+            weight_decay=4e-4,
+            warmup_epochs=5,
+            milestones=[10, 20, 30],
+            lr_mult=0.1,
+        )
+        print_number_trainable_parameters(model=model)
+        tokenizer = AutoTokenizer.from_pretrained(txt_model)
+        collate_fn = Collate_fn_nanoclip(tokenizer,  max_length=80, captions_to_use='first')
+    elif name_model == "clip":
+        model = CLIP_model()
+        processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
+        collate_fn = Collate_fn_clip(processor=processor)
+        print_number_trainable_parameters(model=model)
+        
+        
     print("Train dataset")
     print("-"*15)
-    train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
+    #train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
+    train_dataset = Custom_dataset_category_only_turtle('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
+
     print("-"*15)
     print("Validation dataset")
-    val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)
+    #val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)
+    val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
     print("-"*15)
     
-    tokenizer = AutoTokenizer.from_pretrained(txt_model)
+    
     class_to_indices = get_class_with_index(train_dataset)
-    sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
+    #sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
         
     train_dataloader = DataLoader(
         train_dataset, 
-        #batch_size=batch_size, 
-        #shuffle=True,
-        batch_sampler = sampler, 
+        batch_size=batch_size, 
+        shuffle=True,
+        #batch_sampler = sampler, 
         num_workers=4, 
         pin_memory=True, 
-        collate_fn=Collate_fn(tokenizer, max_length=80, captions_to_use='first') # captions_to_use='random' or 'first' or 'all'
+        collate_fn=collate_fn # captions_to_use='random' or 'first' or 'all'
     )
 
     val_dataloader = DataLoader(
@@ -128,11 +161,11 @@ def main(batch_size, lr, dim, device, wd):
         #batch_sampler = sampler_val,
         num_workers=4, 
         pin_memory=True,
-        collate_fn=Collate_fn(tokenizer,  max_length=80, captions_to_use='first') # in eval we use the first caption only
+        collate_fn=collate_fn # in eval we use the first caption only
     )
     
     print("Start training")
-    optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd)
+    optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd)
     train(model=model, dataloader=train_dataloader,n_epochs=50, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     writer.close()
 
@@ -144,10 +177,11 @@ if __name__ == "__main__":
     parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
     parser.add_argument("--bs", type=int, default=256, help="Batch size.")
     parser.add_argument("--dim", type=int, default=64, help="Embedding dimensionality.")
-    parser.add_argument("--lr", type=float, default=1e-4, help="Learning Rate.")
+    parser.add_argument("--lr", type=float, default=3e-4, help="Learning Rate.")
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
+    parser.add_argument("--model", type=str, default="clip", help="Model name")
 
     args = parser.parse_args()
     
-    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd)
+    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd, name_model=args.model)

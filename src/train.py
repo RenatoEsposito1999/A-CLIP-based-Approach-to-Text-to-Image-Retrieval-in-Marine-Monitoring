@@ -30,10 +30,18 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             optimizer.step()
         
             total_loss += loss.item()
+            
         scheduler.step()
         writer.add_scalar("Loss/train", total_loss / len(dataloader), epoch+1)
+
         print(f"Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
-        validation(dataloader=val_dataloader, model=model,writer=writer, train_epoch=epoch, device=device)
+        # 2. Norma dei gradienti (se sono ~0, il modello non impara)
+        total_grad_norm = 0
+        for p in model.parameters():
+            if p.grad is not None:
+                total_grad_norm += p.grad.data.norm(2).item()
+        print(f"Gradient Norm: {total_grad_norm}")
+        #validation(dataloader=val_dataloader, model=model,writer=writer, train_epoch=epoch, device=device)
 
 def validation(dataloader, model,writer, train_epoch, device):
     model.eval()

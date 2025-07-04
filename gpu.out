@@ -1,57 +1,27 @@
-Trainable parameters: 14,396,672
-Total parameters: 44,819,072
+trainable params: 1,001,472 || all params: 152,278,785 || trainable%: 0.6577
+Trainable parameters: 1,001,472
+Total parameters: 152,278,785
 Train dataset
 ---------------
-turtle:  1338
-debris:  34
-sea:  234
-dolphine:  30
-furniture 186
-animal 268
-person 431
-vehicle 261
-kitchen 103
-electronic 79
-indoor 122
-appliance 40
-food 122
-sports 166
-accessory 121
-outdoor 107
+{'turtle': -1, 'debris': -2, 'sea': -3, 'dolphin': -4}
+turtle:  14429
+debris:  544
+sea:  3755
+dolphine:  484
+coco 32109
+flickr30 25426
 ---------------
 Validation dataset
-turtle:  2677
+{'turtle': -1, 'debris': -2, 'sea': -3, 'dolphin': -4}
+turtle:  1804
 debris:  68
 sea:  469
 dolphine:  60
-furniture 365
-animal 535
-person 845
-vehicle 478
-kitchen 240
-electronic 173
-indoor 245
-appliance 121
-food 260
-sports 324
-accessory 221
-outdoor 207
+coco 4014
+flickr30 3178
 ---------------
 Start training
-Logits i2t std: 0.11748121678829193
-Logits i2t std: 0.09652342647314072
-Logits i2t std: 0.0867413803935051
-Logits i2t std: 0.08828957378864288
-Logits i2t std: 0.07575620710849762
-Logits i2t std: 0.0743069127202034
-Logits i2t std: 0.0689263716340065
-Logits i2t std: 0.0698896273970604
-Logits i2t std: 0.06421297788619995
-Logits i2t std: 0.0646984726190567
-Logits i2t std: 0.060169268399477005
-Logits i2t std: 0.06144469603896141
-Logits i2t std: 0.05068207532167435
-Logits i2t std: 0.059522468596696854
-Logits i2t std: 0.06056441739201546
-Logits i2t std: 0.0622071772813797
-Epoch 1/50, Loss: 5.9171
+Epoch 1/50, Loss: 2.0211
+Gradient Norm: 6.828553064260632
+Epoch 2/50, Loss: 1.8480
+Gradient Norm: 11.319926206953824
