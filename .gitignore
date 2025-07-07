@@ -101,4 +101,6 @@ gpu.out
 datasets
 old_csv
 *.zip
-NEW_DATASET
+NEW_DATASET/Train
+NEW_DATASET/Test
+NEW_DATASET/Validation

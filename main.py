@@ -8,6 +8,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import torch
 from src.sampler import ClassBalancedBatchSampler
+from src.new_dataset import Custom_dataset_augmented
 from src.nanoclip import NanoCLIP
 from src.CLIP_model import CLIP_model
 #from src.dataset import Custom_dataset, Collate_fn
@@ -23,9 +24,9 @@ generic_ransform = T.Compose([
         #T.RandomResizedCrop((224, 224), scale=(0.8, 1.0), interpolation=3),
         #T.RandomHorizontalFlip(0.5),
         #T.RandomVerticalFlip(0.1),
-        T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
-        #T.ToTensor(),
-        #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        #T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
+        T.ToTensor(),
+        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
 '''train_heavy_transform = T.Compose([
@@ -56,9 +57,9 @@ generic_ransform = T.Compose([
 
 train_heavy_transform = T.Compose([
     T.Resize((224, 224)),
-    T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.),
-    #T.ToTensor(),
-    #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    #T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.),
+    T.ToTensor(),
+    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 def print_number_trainable_parameters(model):    
@@ -146,8 +147,8 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     print("Train dataset")
     print("-"*15)
     #train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
-    train_dataset = Custom_dataset_category_only_turtle('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
-
+    #train_dataset = Custom_dataset_category_only_turtle('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
+    train_dataset = Custom_dataset_augmented("./NEW_DATASET", split="train", model=name_model)
     print("-"*15)
     print("Validation dataset")
     #val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)

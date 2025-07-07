@@ -26,7 +26,7 @@ class Custom_dataset_augmented(Dataset):
     The captions are in the captions.txt file.
     """
 
-    def __init__(self, base_path, split='train', model="clip"):
+    def __init__(self, base_path, split='train', model="clip", txt_transform=None):
         # make sur flickr30k_images folder exists in the base_path
         base_path = pathlib.Path(base_path)
         if split == "train":
@@ -38,13 +38,13 @@ class Custom_dataset_augmented(Dataset):
         
         img_dir_coco_flicker = img_dir / "COCO-Flickr30k"
         img_dir_turtle = img_dir / "Turtle"
-        img_dir_other_turtle = img_dir / "Turle_other"
+        img_dir_other_turtle = img_dir / "Turtle_other"
         img_dir_debris = img_dir / "Debris"
         img_dir_dolphin = img_dir / "Dolphin"
         img_dir_sea = img_dir / "Sea"
         
         
-        annotations_dir = img_dir / "annotations"
+        annotations_dir = img_dir / "Annotations"
         annotations_coco_flicker =  annotations_dir / "coco_flicker.csv"
         annotations_turtle = annotations_dir / "turtle.csv"
         annotations_debris = annotations_dir / "debris.csv"
@@ -63,6 +63,8 @@ class Custom_dataset_augmented(Dataset):
                 T.ToTensor(),
                 T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             ])
+            
+        self.txt_transform=txt_transform
             
         
         category_info ={
@@ -83,8 +85,8 @@ class Custom_dataset_augmented(Dataset):
         self.df = pd.read_csv(annotations_coco_flicker)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
-            self.captions_turtle[img_dir_coco_flicker / image].append(caption)
-            self.captions_turtle[img_dir_coco_flicker / image].append(category)
+            self.captions_coco_flickr30[img_dir_coco_flicker / image].append(caption)
+            self.captions_coco_flickr30[img_dir_coco_flicker / image].append(category)
                 
         
 
@@ -146,9 +148,8 @@ class Custom_dataset_augmented(Dataset):
         print("turtle: ", len(self.imgs_turtle))
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
-        print("dolphine: ",len(self.imgs_dolphine))
-        print("coco", len(self.imgs_COCO))
-        print("flickr30", len(self.imgs_flickr30))
+        print("dolphine: ",len(self.imgs_dolphin))
+        print("COCO-flickr30", len(self.imgs_coco_flickr30))
         
         self.imgs = self.imgs_coco_flickr30 + self.imgs_debris + self.imgs_dolphin + self.imgs_sea + self.imgs_turtle 
         random.shuffle(self.imgs)

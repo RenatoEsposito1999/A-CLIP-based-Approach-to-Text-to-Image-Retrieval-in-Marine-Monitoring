@@ -15,14 +15,14 @@ CROPPED_TURTLE_POSITIVE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/
 CROPPED_DEBRIS_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_debris.csv"
 CROPPED_DOLPHINE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_dolphine.csv"
 CROPPED_SEA_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/cropped_sea.csv"
-OTHER_TURTLE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/turtle_other.csv"
+OTHER_TURTLE_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/other_turtle.csv"
 
 DATASET_ANNOTATIONS_PATH = "/workspace/annotations/instances_Train.json"
 COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/images/COCO/"
 DATASET_IMAGES_CROPPED_PATH = "/workspace/text-to-image-retrivial/datasets/images/Train_cropped/"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
 COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
-OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/turtle/"
+OTHER_TURTLE_DATASET = "/workspace/text-to-image-retrivial/datasets/images/other_turtle/"
 
 '''DATASET_ANNOTATIONS_PATH = "/projects/data/turtle-full-v2/annotations/instances_Train.json"
 COCO_DATASET_PATH="/projects/data/turtle-full-v2/COCO/"
@@ -91,7 +91,7 @@ class Annotations:
             # TXT FOR OTHER TURTLE DATASET
             self.create_csv_other_turtle()
 
-            process_file(dir_path="/workspace/text-to-image-retrivial/datasets/annotations")
+            #process_file(dir_path="/workspace/text-to-image-retrivial/datasets/annotations")
        
 
     '''def split_2_txt(self, file1, file2, output_prefix='', random_state=None):

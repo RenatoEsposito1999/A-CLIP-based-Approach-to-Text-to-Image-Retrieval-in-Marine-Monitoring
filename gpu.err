@@ -1,3 +1,23 @@
 Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-  0%|          | 0/32409 [00:00<?, ?it/s]100%|██████████| 32409/32409 [00:00<00:00, 865166.30it/s]
-  0%|          | 0/50 [00:00<?, ?it/s]  2%|▏         | 1/50 [01:18<1:04:28, 78.94s/it]  4%|▍         | 2/50 [02:37<1:02:51, 78.57s/it]  6%|▌         | 3/50 [03:58<1:02:34, 79.89s/it]  8%|▊         | 4/50 [05:27<1:03:57, 83.43s/it] 10%|█         | 5/50 [06:52<1:02:56, 83.93s/it] 12%|█▏        | 6/50 [08:12<1:00:30, 82.51s/it] 14%|█▍        | 7/50 [09:30<58:05, 81.07s/it]   16%|█▌        | 8/50 [10:55<57:40, 82.39s/it] 18%|█▊        | 9/50 [12:25<58:00, 84.90s/it] 20%|██        | 10/50 [13:46<55:43, 83.59s/it] 22%|██▏       | 11/50 [15:06<53:32, 82.38s/it] 24%|██▍       | 12/50 [16:29<52:18, 82.60s/it] 26%|██▌       | 13/50 [17:57<51:56, 84.23s/it] 28%|██▊       | 14/50 [19:20<50:16, 83.80s/it] 30%|███       | 15/50 [20:38<47:52, 82.07s/it] 32%|███▏      | 16/50 [21:55<45:45, 80.75s/it] 34%|███▍      | 17/50 [23:17<44:37, 81.15s/it] 36%|███▌      | 18/50 [24:46<44:31, 83.48s/it] 38%|███▊      | 19/50 [26:11<43:21, 83.93s/it] 40%|████      | 20/50 [27:30<41:10, 82.36s/it] 42%|████▏     | 21/50 [28:51<39:39, 82.07s/it] 44%|████▍     | 22/50 [30:21<39:25, 84.48s/it] 46%|████▌     | 23/50 [31:45<37:52, 84.18s/it] 48%|████▊     | 24/50 [33:04<35:45, 82.53s/it] 50%|█████     | 25/50 [34:23<34:01, 81.66s/it] 52%|█████▏    | 26/50 [35:51<33:20, 83.37s/it] 54%|█████▍    | 27/50 [37:29<33:38, 87.76s/it] 56%|█████▌    | 28/50 [38:47<31:05, 84.80s/it] 58%|█████▊    | 29/50 [40:05<29:02, 82.97s/it] 60%|██████    | 30/50 [41:23<27:06, 81.34s/it] 62%|██████▏   | 31/50 [42:40<25:21, 80.10s/it] 64%|██████▍   | 32/50 [43:59<23:55, 79.75s/it] 66%|██████▌   | 33/50 [45:25<23:07, 81.61s/it] 68%|██████▊   | 34/50 [46:46<21:43, 81.47s/it] 70%|███████   | 35/50 [48:28<21:54, 87.64s/it] 72%|███████▏  | 36/50 [50:02<20:52, 89.47s/it] 74%|███████▍  | 37/50 [51:33<19:28, 89.87s/it] 76%|███████▌  | 38/50 [52:57<17:40, 88.36s/it] 78%|███████▊  | 39/50 [54:16<15:39, 85.39s/it] 80%|████████  | 40/50 [55:33<13:50, 83.02s/it] 82%|████████▏ | 41/50 [56:52<12:15, 81.73s/it] 84%|████████▍ | 42/50 [58:10<10:43, 80.48s/it] 86%|████████▌ | 43/50 [59:27<09:17, 79.64s/it] 88%|████████▊ | 44/50 [1:00:46<07:56, 79.45s/it] 90%|█████████ | 45/50 [1:02:05<06:35, 79.18s/it] 92%|█████████▏| 46/50 [1:03:23<05:15, 78.78s/it] 94%|█████████▍| 47/50 [1:04:39<03:53, 77.97s/it] 96%|█████████▌| 48/50 [1:05:54<02:34, 77.23s/it] 98%|█████████▊| 49/50 [1:07:11<01:17, 77.12s/it]100%|██████████| 50/50 [1:08:28<00:00, 77.05s/it]100%|██████████| 50/50 [1:08:28<00:00, 82.17s/it]
+  0%|          | 0/20074 [00:00<?, ?it/s]100%|██████████| 20074/20074 [00:00<00:00, 685711.50it/s]
+  0%|          | 0/50 [00:00<?, ?it/s]  2%|▏         | 1/50 [01:00<49:35, 60.73s/it]  2%|▏         | 1/50 [01:11<58:19, 71.43s/it]
+Traceback (most recent call last):
+  File "/workspace/text-to-image-retrivial/main.py", line 201, in <module>
+    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd, name_model=args.model, n_epochs=args.n_epochs)
+  File "/workspace/text-to-image-retrivial/main.py", line 184, in main
+    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+  File "/workspace/text-to-image-retrivial/src/train.py", line 19, in train
+    for batch in dataloader:
+  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 708, in __next__
+    data = self._next_data()
+  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1458, in _next_data
+    idx, data = self._get_data()
+  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1410, in _get_data
+    success, data = self._try_get_data()
+  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1251, in _try_get_data
+    data = self._data_queue.get(timeout=timeout)
+  File "/venv/tesi/lib/python3.10/queue.py", line 180, in get
+    self.not_empty.wait(remaining)
+  File "/venv/tesi/lib/python3.10/threading.py", line 324, in wait
+    gotit = waiter.acquire(True, timeout)
+KeyboardInterrupt

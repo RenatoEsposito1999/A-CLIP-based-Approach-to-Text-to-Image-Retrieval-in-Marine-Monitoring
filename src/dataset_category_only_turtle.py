@@ -33,7 +33,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         img_dir_flicker = img_dir / "flickr30k_images"
         img_dir_COCO = img_dir / "COCO"
         img_dir_turtle = img_dir / "Train_cropped"
-        img_dir_other_turtle = img_dir / "turtle"
+        img_dir_other_turtle = img_dir / "other_turtle"
         
         annotations_dir = base_path / "annotations"
         annotations_flicker =  annotations_dir / "captionsFlicker.txt"
@@ -42,7 +42,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         annotations_debris = annotations_dir / "cropped_debris.csv"
         annotations_sea = annotations_dir / "cropped_sea.csv"
         annotations_dolphine = annotations_dir / "cropped_dolphine.csv"
-        annotations_other_turtle = annotations_dir / "output.csv"
+        annotations_other_turtle = annotations_dir / "other_turtle.csv"
         annotations_category = annotations_dir / "category_info.json"
         
         if not img_dir.exists():
@@ -212,7 +212,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         print("coco", len(self.imgs_COCO))
         print("flickr30", len(self.imgs_flickr30))
         
-        self.imgs = self.imgs_flickr30 + self.imgs_turtle 
+        self.imgs = self.imgs_COCO + self.imgs_turtle 
         #self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
         self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
