@@ -11,35 +11,22 @@ import os
 #from get_category_info import process_file
 from collections import defaultdict
 
-
-COCO_FLICKER_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/COCO-Flickr30k/"
-TURTLE_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/Turtle/"
-OTHER_TURTLE_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/Turtle_other/"
-DEBRIS_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/Debris/"
-DOLPHINE_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/Dolphin/"
-SEA_DATASET_PATH = "/workspace/text-to-image-retrivial/NEW_DATASET/Train/Sea/"
-FLICKER_TXT = "./captionsFlicker.txt"
 CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/annotations/captions_val2014.json"
 COCO_ISTANCES_VAL_PATH = "/workspace/annotations/instances_val2014.json"
-DEBRIS_CSV = "./debris.csv"
-DOLPHIN_CSV = "./dolphin.csv"
-SEA_CSV = "./sea.csv"
-COCO_FLICKER_CSV = "./coco_flicker.csv"
-TURTLE_CSV = "./turtle.csv"
-OTHER_TURTLE_CSV = "./other_turtle.csv"
-
+CURRENT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+FLICKER_TXT = os.path.join(CURRENT_DIRECTORY, "captionsFlicker.txt")
 CAPTIONS_COCO = COCO(CAPTIONS_ANNOTATIONS_COCO_PATH)        
 INSTANCES_COCO = COCO(COCO_ISTANCES_VAL_PATH) 
 
 LLM = None
-unique_category = 0
+
 
 def read_flicker_txt():
     flicker_dict = defaultdict(str)
     with open(FLICKER_TXT, 'r') as f:
         for line in f.readlines()[1:]: # ignore the header (first line)
             image, caption_number, caption = line.strip().split(',', 2)
-            if caption_number == 0:
+            if caption_number == "0":
                 flicker_dict[image] = caption
     return flicker_dict
                 
@@ -67,14 +54,15 @@ def COCO_get_caption_and_category(img_name):
                 
             return random.choice(only_captions), supercategory
 
-def COCO_flicker_create_csv():
-    global unique_category
-    flicker_txt = read_flicker_txt()
-    coco_flicker_file = open(COCO_FLICKER_CSV, mode='w', encoding='utf-8', newline='')
+def COCO_flicker_create_csv(path_folder, flickr_dict):
+    unique_category = 0
+    coco_flicker_dataset_path = os.path.join(path_folder, "COCO-Flickr30k")
+    coco_flicker_csv = os.path.join(path_folder, "Annotations/coco_flicker.csv")
+    coco_flicker_file = open(coco_flicker_csv, mode='w', encoding='utf-8', newline='')
     fieldnames = ['image_name', 'comment_number','comment','category']
     writer_coco_flicker = csv.DictWriter(coco_flicker_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
     writer_coco_flicker.writeheader()
-    for file_name in os.listdir(COCO_FLICKER_DATASET_PATH):
+    for file_name in os.listdir(coco_flicker_dataset_path):
         if "COCO" in file_name:
             # Ottieni la lista di caption e la categoria
             sentence, category = COCO_get_caption_and_category(file_name)
@@ -90,9 +78,10 @@ def COCO_flicker_create_csv():
                 txt_file.write(f"{file_name}, {i}, {caption}\n")'''
             '''caption = caption.replace("\n", "")
             txt_file.write(f"{file_name}, {i}, {caption}\n")'''
-        elif file_name in flicker_txt:
+        
+        elif file_name in flickr_dict:
             #file_name = os.path.join(COCO_FLICKER_DATASET_PATH, file_name)
-            writer_coco_flicker.writerow({"image_name": file_name, "comment_number": 0, "comment": flicker_txt[file_name],"category":unique_category})
+            writer_coco_flicker.writerow({"image_name": file_name, "comment_number": 0, "comment": flickr_dict[file_name],"category":unique_category})
             unique_category += 1
     coco_flicker_file.close()
     
@@ -126,12 +115,21 @@ def create_marine_csv(folder, writer, category):
         writer.writerow({"image_name": file_name, "comment_number": 0, "comment": sentence,"category":category})
     
 
-def create_turtle_debris_dolphin_sea_csv():
-    turtle_file = open(TURTLE_CSV, mode='w', encoding='utf-8', newline='')
-    other_turtle_file = open(OTHER_TURTLE_CSV, mode='w', encoding='utf-8', newline='')
-    sea_file = open(SEA_CSV, mode='w', encoding='utf-8', newline='')
-    dolphin_file = open(DOLPHIN_CSV, mode='w', encoding='utf-8', newline='')
-    debris_file = open(DEBRIS_CSV, mode='w', encoding='utf-8', newline='')
+def create_turtle_debris_dolphin_sea_csv(path_folder):
+    turtle_csv = os.path.join(path_folder, "Annotations/turtle.csv")
+    turtle_file = open(turtle_csv, mode='w', encoding='utf-8', newline='')
+    
+    other_turtle_csv = os.path.join(path_folder, "Annotations/other_turtle.csv")
+    other_turtle_file = open(other_turtle_csv, mode='w', encoding='utf-8', newline='')
+
+    sea_csv = os.path.join(path_folder, "Annotations/sea.csv")
+    sea_file = open(sea_csv, mode='w', encoding='utf-8', newline='')
+    
+    dolphin_csv = os.path.join(path_folder, "Annotations/dolphin.csv")
+    dolphin_file = open(dolphin_csv, mode='w', encoding='utf-8', newline='')
+    
+    debris_csv = os.path.join(path_folder, "Annotations/debris.csv")
+    debris_file = open(debris_csv, mode='w', encoding='utf-8', newline='')
     
     fieldnames = ['image_name', 'comment_number','comment','category']
     
@@ -146,11 +144,17 @@ def create_turtle_debris_dolphin_sea_csv():
     debris_writer = csv.DictWriter(debris_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
     debris_writer.writeheader()
     
-    create_marine_csv(TURTLE_DATASET_PATH, turtle_writer, -2)
-    create_marine_csv(OTHER_TURTLE_DATASET_PATH, other_turtle_writer, -2)
-    create_marine_csv(SEA_DATASET_PATH, sea_writer, -4)
-    create_marine_csv(DOLPHINE_DATASET_PATH, dolphin_writer, -1)
-    create_marine_csv(DEBRIS_DATASET_PATH, debris_writer, -3)
+
+    turtle_dataset_path = os.path.join(path_folder, "Turtle")
+    create_marine_csv(turtle_dataset_path, turtle_writer, -2)
+    other_turtle_dataset_path = os.path.join(path_folder, "Turtle_other")
+    create_marine_csv(other_turtle_dataset_path, other_turtle_writer, -2)
+    sea_dataset_path =os.path.join(path_folder, "Sea")
+    create_marine_csv(sea_dataset_path, sea_writer, -4)
+    dolphin_dataset_path = os.path.join(path_folder, "Dolphin")
+    create_marine_csv(dolphin_dataset_path, dolphin_writer, -1)
+    debris_dataset_path = os.path.join(path_folder, "Debris")
+    create_marine_csv(debris_dataset_path, debris_writer, -3)
     
     turtle_file.close()
     other_turtle_file.close()
@@ -158,9 +162,25 @@ def create_turtle_debris_dolphin_sea_csv():
     sea_file.close()
     debris_file.close()
     
-COCO_flicker_create_csv()
-create_turtle_debris_dolphin_sea_csv()
+
+
+def main():
+    train_path = os.path.join(CURRENT_DIRECTORY, "Train")
+    val_path = os.path.join(CURRENT_DIRECTORY, "Validation")
+    test_path = os.path.join(CURRENT_DIRECTORY, "Test")
+    
+    flickr_dict = read_flicker_txt()
+    
+    COCO_flicker_create_csv(train_path, flickr_dict)
+    create_turtle_debris_dolphin_sea_csv(train_path)
+    COCO_flicker_create_csv(val_path, flickr_dict)
+    create_turtle_debris_dolphin_sea_csv(val_path)
+    COCO_flicker_create_csv(test_path, flickr_dict)
+    create_turtle_debris_dolphin_sea_csv(test_path)
     
     
+
+if __name__ == "__main__":
+    main()
     
             
