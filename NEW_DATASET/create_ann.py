@@ -34,8 +34,6 @@ INSTANCES_COCO = COCO(COCO_ISTANCES_VAL_PATH)
 LLM = None
 unique_category = 0
 
-
-
 def read_flicker_txt():
     flicker_dict = defaultdict(str)
     with open(FLICKER_TXT, 'r') as f:
@@ -75,13 +73,14 @@ def COCO_flicker_create_csv():
     coco_flicker_file = open(COCO_FLICKER_CSV, mode='w', encoding='utf-8', newline='')
     fieldnames = ['image_name', 'comment_number','comment','category']
     writer_coco_flicker = csv.DictWriter(coco_flicker_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    writer_coco_flicker.writeheader()
     for file_name in os.listdir(COCO_FLICKER_DATASET_PATH):
         if "COCO" in file_name:
             # Ottieni la lista di caption e la categoria
             sentence, category = COCO_get_caption_and_category(file_name)
             if not category == "empty":
                 sentence = sentence.replace("\n", "")
-                file_name = os.path.join(COCO_FLICKER_DATASET_PATH, file_name)
+                #file_name = os.path.join(COCO_FLICKER_DATASET_PATH, file_name)
                 writer_coco_flicker.writerow({"image_name": file_name, "comment_number": 0, "comment": sentence,"category":unique_category})
                 unique_category += 1
             # Per ogni caption nella lista, scrivi una riga nel file .txt
@@ -92,14 +91,14 @@ def COCO_flicker_create_csv():
             '''caption = caption.replace("\n", "")
             txt_file.write(f"{file_name}, {i}, {caption}\n")'''
         elif file_name in flicker_txt:
-            file_name = os.path.join(COCO_FLICKER_DATASET_PATH, file_name)
+            #file_name = os.path.join(COCO_FLICKER_DATASET_PATH, file_name)
             writer_coco_flicker.writerow({"image_name": file_name, "comment_number": 0, "comment": flicker_txt[file_name],"category":unique_category})
             unique_category += 1
     coco_flicker_file.close()
     
 def create_marine_csv(folder, writer, category):
     for file_name in os.listdir(folder):
-        file_name = os.path.join(folder, file_name)
+        #file_name = os.path.join(folder, file_name)
         if category == -1: #dolphin
             dynamic_random = random.Random(time.time())
             mantain_templating = dynamic_random.random() < 0.3 # 30% chance of not using the llm
@@ -131,16 +130,21 @@ def create_turtle_debris_dolphin_sea_csv():
     turtle_file = open(TURTLE_CSV, mode='w', encoding='utf-8', newline='')
     other_turtle_file = open(OTHER_TURTLE_CSV, mode='w', encoding='utf-8', newline='')
     sea_file = open(SEA_CSV, mode='w', encoding='utf-8', newline='')
-    dolphin_file = open(COCO_FLICKER_CSV, mode='w', encoding='utf-8', newline='')
+    dolphin_file = open(DOLPHIN_CSV, mode='w', encoding='utf-8', newline='')
     debris_file = open(DEBRIS_CSV, mode='w', encoding='utf-8', newline='')
     
     fieldnames = ['image_name', 'comment_number','comment','category']
     
     turtle_writer = csv.DictWriter(turtle_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    turtle_writer.writeheader()
     other_turtle_writer = csv.DictWriter(other_turtle_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    other_turtle_writer.writeheader()
     sea_writer = csv.DictWriter(sea_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    sea_writer.writeheader()
     dolphin_writer = csv.DictWriter(dolphin_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    dolphin_writer.writeheader()
     debris_writer = csv.DictWriter(debris_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+    debris_writer.writeheader()
     
     create_marine_csv(TURTLE_DATASET_PATH, turtle_writer, -2)
     create_marine_csv(OTHER_TURTLE_DATASET_PATH, other_turtle_writer, -2)
