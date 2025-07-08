@@ -3,13 +3,8 @@ from tqdm import tqdm
 import numpy as np
 from collections import defaultdict
 import json
-focus_id = []
-with open("/workspace/text-to-image-retrivial/datasets/annotations/category_info.json", "r") as f:
-            data = json.load(f)
-            focus_id.append(data["turtle"][0])
-            focus_id.append(data["dolphin"][0])
-            focus_id.append(data["sea"][0])
-            focus_id.append(data["debris"][0])
+focus_id = [-1,-2,-3,-4]
+
 
 def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, writer, val_dataloader):
     model = model.to(device)
@@ -32,18 +27,18 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             total_loss += loss.item()
     
             scheduler.step()
-        writer.add_scalar("Loss/train", total_loss / len(dataloader), epoch+1)
+        writer.add_scalar("Loss_train", total_loss / len(dataloader), epoch+1)
 
-        print(f"Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
+        print(f"TRAINING: Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
         # 2. Norma dei gradienti (se sono ~0, il modello non impara)
         total_grad_norm = 0
         for p in model.parameters():
             if p.grad is not None:
                 total_grad_norm += p.grad.data.norm(2).item()
         print(f"Gradient Norm: {total_grad_norm}")
-        #validation(dataloader=val_dataloader, model=model,writer=writer, train_epoch=epoch, device=device)
+        validation(dataloader=val_dataloader, model=model, loss_fn=loss_fn,writer=writer, train_epoch=epoch, device=device)
 
-def validation(dataloader, model,writer, train_epoch, device):
+def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     model.eval()
     all_img_embs, all_text_embs, all_cats = [], [],[]
     for batch in dataloader:
@@ -55,11 +50,14 @@ def validation(dataloader, model,writer, train_epoch, device):
                 captions = captions.to(device)
                 masks = masks.to(device)
                 cats = cats.to(device)
-                img_embs,text_embs=model(images,captions,masks)
+                img_embs,text_embs, logit_scale=model(images,captions,masks)
                 all_img_embs.append(img_embs)
                 all_text_embs.append(text_embs)
                 all_cats.append(cats)
-                #loss, _ = loss_fn(text_embs,img_embs,cats)
+                loss = loss_fn(text_embs,img_embs,cats, logit_scale)
+                total_loss += loss.item()
+    writer.add_scalar("Val_Loss", total_loss / len(dataloader), train_epoch+1)
+    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}")
     all_img_embs = torch.cat(all_img_embs, dim=0)
     all_text_embs = torch.cat(all_text_embs, dim=0)
     all_cats = torch.cat(all_cats,dim=0)
