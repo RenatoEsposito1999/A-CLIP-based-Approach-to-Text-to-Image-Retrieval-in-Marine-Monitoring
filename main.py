@@ -8,6 +8,7 @@ from collections import defaultdict
 from tqdm import tqdm
 import torch
 from src.sampler import ClassBalancedBatchSampler
+from src.new_sampler import NonRepeatingBalancedSampler
 from src.new_dataset import Custom_dataset_augmented
 from src.nanoclip import NanoCLIP
 from src.CLIP_model import CLIP_model
@@ -77,8 +78,7 @@ def get_optimizer_and_scheduler(model,name_model, lr,weight_decay, tot_num_epoch
         """
         Define the optimizer and the learning rate scheduler.
         """
-        milestones=[5, 10, 15]
-        lr_mult=0.1
+        
         #START DEFINITION OPTIMIZER
         if name_model == "nanoclip":
             trainable_params_img = [p for p in model.img_encoder.parameters() if p.requires_grad]
@@ -103,6 +103,8 @@ def get_optimizer_and_scheduler(model,name_model, lr,weight_decay, tot_num_epoch
             num_warmup_steps=num_warmup_steps,
             num_training_steps=total_training_steps
         )
+        #milestones=[5, 10, 15]
+        #lr_mult=0.1
         #scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=milestones, gamma=lr_mult)   
         
         return optimizer, scheduler
@@ -142,8 +144,9 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
         processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
         collate_fn = Collate_fn_clip(processor=processor)
         print_number_trainable_parameters(model=model)
+        #print_names_trainable_parameters(model=model)
         
-        
+    
     print("Train dataset")
     print("-"*15)
     #train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
@@ -152,18 +155,20 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     print("-"*15)
     print("Validation dataset")
     #val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)
-    val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
+    #val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
+    val_dataset = Custom_dataset_augmented("./NEW_DATASET", split="val", model=name_model)
     print("-"*15)
-    
+  
+   
     
     class_to_indices = get_class_with_index(train_dataset)
     #sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
-        
+    sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size)
     train_dataloader = DataLoader(
         train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True,
-        #batch_sampler = sampler, 
+        #batch_size=batch_size, 
+        #shuffle=True,
+        batch_sampler = sampler, 
         num_workers=4, 
         pin_memory=True, 
         collate_fn=collate_fn # captions_to_use='random' or 'first' or 'all'
@@ -181,7 +186,11 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     
     print("Start training")
     optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
+    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
+    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
     train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+    send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
+    send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
     writer.close()
 
 if __name__ == "__main__":
