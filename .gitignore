@@ -96,11 +96,11 @@ COCO
 flickr30k_images
 Train_cropped
 checkpoint*
-gpu.err
-gpu.out
 datasets
 old_csv
 *.zip
 NEW_DATASET/Train
 NEW_DATASET/Test
 NEW_DATASET/Validation
+*.err
+*.out
