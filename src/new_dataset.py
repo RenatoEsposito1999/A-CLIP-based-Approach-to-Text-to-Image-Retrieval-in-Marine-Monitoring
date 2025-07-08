@@ -65,8 +65,6 @@ class Custom_dataset_augmented(Dataset):
             ])
             
         self.txt_transform=txt_transform
-            
-        
         category_info ={
             "turtle": -2,
             "debris": -3,
@@ -78,73 +76,30 @@ class Custom_dataset_augmented(Dataset):
         '''
             for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
         '''
-        #START TO INSERT FLICKR30
-        self.captions_coco_flickr30 = defaultdict(list)
-        #self.read_csv_file()
-        
-        self.df = pd.read_csv(annotations_coco_flicker)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_coco_flickr30[img_dir_coco_flicker / image].append(caption)
-            self.captions_coco_flickr30[img_dir_coco_flicker / image].append(category)
-                
-        
+        #START TO INSERT FLICKR30 AND COCO
+        self.captions_coco_flickr30, self.imgs_coco_flickr30 = self.read_csv(file_name=annotations_coco_flicker, img_dir=img_dir_coco_flicker, nrows=13000)
 
-        self.captions_turtle = defaultdict(list)
+        #START TO INSERT TURTLE
+        self.captions_turtle, self.imgs_turtle = self.read_csv(file_name=annotations_turtle, img_dir=img_dir_turtle)
         '''
         {key: "path_image", value: [caption, category]}
-        '''
-    
-        self.df = pd.read_csv(annotations_turtle)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_turtle[img_dir_turtle / image].append(caption)
-            self.captions_turtle[img_dir_turtle / image].append(category)
+        '''   
+        #START TO INSERT OTHER TURTLE
+        captions_other_turtle, imgs_other_turtle = self.read_csv(file_name=annotations_other_turtle, img_dir=img_dir_other_turtle) 
         
-        self.df = pd.read_csv(annotations_other_turtle)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_turtle[img_dir_other_turtle / image].append(caption)
-            self.captions_turtle[img_dir_other_turtle / image].append(category)
+        #MERGE TURTLE AND OTHER TURTLE
+        self.captions_turtle = self.captions_turtle | captions_other_turtle
+        self.imgs_turtle = self.imgs_turtle + imgs_other_turtle
         
         #START TO INSERT DEBRIS          
-        self.captions_debris = defaultdict(list)
-        self.df = pd.read_csv(annotations_debris)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_debris[img_dir_debris / image].append(caption)
-            self.captions_debris[img_dir_debris / image].append(category)
+        self.captions_debris, self.imgs_debris = self.read_csv(file_name=annotations_debris, img_dir=img_dir_debris)
     
         #START TO INSERT SEA           
-        self.captions_sea = defaultdict(list)
-        self.df = pd.read_csv(annotations_sea)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_sea[img_dir_sea / image].append(caption)
-            self.captions_sea[img_dir_sea / image].append(category)
-            
+        self.captions_sea, self.imgs_sea = self.read_csv(file_name=annotations_sea, img_dir=img_dir_sea)
+         
         #START TO INSERT DOLPHINE        
-        self.captions_dolphin = defaultdict(list)
-        self.df = pd.read_csv(annotations_dolphin)
-        for idx,row in self.df.iterrows():
-            image, comment_number, caption, category = row
-            self.captions_dolphin[img_dir_dolphin / image].append(caption)
-            self.captions_dolphin[img_dir_dolphin / image].append(category)     
-               
-        # get all image names
-        self.imgs_coco_flickr30 = list(self.captions_coco_flickr30.keys())
-        random.shuffle(self.imgs_coco_flickr30)
-        self.imgs_coco_flickr30 = self.imgs_coco_flickr30[:13000]
-        self.imgs_turtle = list(self.captions_turtle.keys())
-        random.shuffle(self.imgs_turtle)
-        self.imgs_debris = list(self.captions_debris.keys())
-        random.shuffle(self.imgs_debris)
-        self.imgs_sea = list(self.captions_sea.keys())
-        random.shuffle(self.imgs_sea)
-        self.imgs_dolphin = list(self.captions_dolphin.keys())
-        random.shuffle(self.imgs_dolphin)
+        self.captions_dolphin, self.imgs_dolphin = self.read_csv(file_name=annotations_dolphin, img_dir=img_dir_dolphin)
         
-
         print("turtle: ", len(self.imgs_turtle))
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
@@ -155,8 +110,6 @@ class Custom_dataset_augmented(Dataset):
         random.shuffle(self.imgs)
         self.captions = self.captions_coco_flickr30 | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphin
 
-        
-   
     def read_csv(self, file_name, img_dir, nrows=None):
         df = pd.read_csv(file_name)
         captions = defaultdict(list)
@@ -165,9 +118,9 @@ class Custom_dataset_augmented(Dataset):
             captions[img_dir / image].append(caption)
             captions[img_dir / image].append(category)
         imgs = list(captions.keys())
+        random.shuffle(imgs)
         if nrows:
             imgs = imgs[:nrows]
-        random.shuffle(imgs)
         return captions, imgs
     
     def __len__(self):

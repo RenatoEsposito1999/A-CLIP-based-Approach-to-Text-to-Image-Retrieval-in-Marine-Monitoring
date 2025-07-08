@@ -13,7 +13,7 @@ class CLIP_model(nn.Module):
         for param in clip_model.text_model.parameters():
             param.requires_grad = True'''
         self.clip_model = self.apply_lora_to_clip()
-        self.clip_model.logit_scale.requires_grad = False
+        self.clip_model.logit_scale.requires_grad = True
         self.clip_model.print_trainable_parameters()
         
 
@@ -31,7 +31,7 @@ class CLIP_model(nn.Module):
     
     def forward(self, images, text_inputs, attention_masks):
         output = self.clip_model(input_ids=text_inputs, pixel_values=images, attention_mask=attention_masks, return_loss=False)
-        return output.image_embeds, output.text_embeds
+        return output.image_embeds, output.text_embeds, self.clip_model.logit_scale
 
 
     

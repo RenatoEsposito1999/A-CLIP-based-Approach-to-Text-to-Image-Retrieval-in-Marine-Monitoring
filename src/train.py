@@ -22,14 +22,15 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             captions = captions.to(device)
             masks = masks.to(device)
             cats = cats.to(device)
-            img_embs,text_embs=model(images,captions,masks)
-            loss = loss_fn(text_embs,img_embs,cats)
+            img_embs,text_embs, logit_scale=model(images,captions,masks)
+            loss = loss_fn(img_embs, text_embs, cats, logit_scale)
+            
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         
             total_loss += loss.item()
-            
+    
             scheduler.step()
         writer.add_scalar("Loss/train", total_loss / len(dataloader), epoch+1)
 
