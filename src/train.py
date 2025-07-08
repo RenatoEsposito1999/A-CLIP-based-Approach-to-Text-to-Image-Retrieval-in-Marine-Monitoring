@@ -23,8 +23,8 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             masks = masks.to(device)
             cats = cats.to(device)
             img_embs,text_embs, logit_scale=model(images,captions,masks)
-            loss = loss_fn(img_embs, text_embs, cats, logit_scale)
             
+            loss = loss_fn(img_embs, text_embs, cats, logit_scale)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()

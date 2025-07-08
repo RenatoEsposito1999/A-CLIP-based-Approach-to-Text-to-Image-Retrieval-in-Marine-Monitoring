@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from collections import defaultdict
 
 def build_target_matrix(flags):
         """
@@ -11,17 +12,23 @@ def build_target_matrix(flags):
         Returns:
             Matrice target dove target[i,j] = 1 se flags[i] == flags[j], 0 altrimenti
         """
-        '''print(flags)
-        print([[x,flags.tolist().count(x)] for x in set(flags.tolist())])'''
-    
+        #print(flags)
+        '''number_categories = defaultdict(int)
+        for x in flags.tolist():
+            if x < 0:
+                number_categories[x] += 1
+        print(number_categories)
+        print("BATCH SIZE: ", len(flags.tolist()))'''
+        
         # Espande i flags per confronto tra tutti gli elementi
         flags_expanded_row = flags.unsqueeze(1)
         flags_expanded_col = flags.unsqueeze(0)
-    
+       
+        
         # Crea la matrice di similarità (1 se stessa classe, 0 altrimenti)
         target = (flags_expanded_row == flags_expanded_col).float()
-        '''print(target)
-        exit()'''
+        
+      
         # Imposta a 0 gli elementi sulla diagonale (non confrontiamo un esempio con se stesso)
         #target.fill_diagonal_(0)
         return target
@@ -45,7 +52,6 @@ def contrastiveLoss(image_embedding, text_embedding, cats, temperature=None):
         temperature = 1/temperature
     else:
         temperature = 0.07
-        temperature = torch.clamp(temperature.exp(), max=100)
     labels = build_target_matrix(cats)   
     #DECOMMENT THE LINES ABOVE FOR CHECKING IF THE TEXT AND IMAGE ARE NORMALIZED 
     '''# Calcola le norme L2 per ogni embedding nel batch (lungo l'asse D)

@@ -77,7 +77,7 @@ class Custom_dataset_augmented(Dataset):
             for each dataset, create e dictionaty, where the key is the path of the image and value is a list of 5 captions associated to that image
         '''
         #START TO INSERT FLICKR30 AND COCO
-        self.captions_coco_flickr30, self.imgs_coco_flickr30 = self.read_csv(file_name=annotations_coco_flicker, img_dir=img_dir_coco_flicker, nrows=13000)
+        self.captions_coco_flickr30, self.imgs_coco_flickr30 = self.read_csv(file_name=annotations_coco_flicker, img_dir=img_dir_coco_flicker, nrows=22000)
 
         #START TO INSERT TURTLE
         self.captions_turtle, self.imgs_turtle = self.read_csv(file_name=annotations_turtle, img_dir=img_dir_turtle)

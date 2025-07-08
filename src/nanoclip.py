@@ -101,7 +101,7 @@ class NanoCLIP(nn.Module):
         text_embedding = self.txt_encoder(captions, masks) # (batch_size, nb_captions, out_dim)
         text_embedding = F.normalize(text_embedding, p=2, dim=-1) # normalize embeddings
         
-        return image_embedding, text_embedding
+        return image_embedding, text_embedding, None
     
     '''def training_step(self, batch, batch_idx=None):
         """ 
