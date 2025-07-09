@@ -104,3 +104,5 @@ NEW_DATASET/Test
 NEW_DATASET/Validation
 *.err
 *.out
+*.pth
+
