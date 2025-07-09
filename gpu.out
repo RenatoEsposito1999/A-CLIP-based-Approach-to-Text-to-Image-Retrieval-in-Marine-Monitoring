@@ -1,24 +1,18 @@
-trainable params: 1,001,472 || all params: 152,278,785 || trainable%: 0.6577
-Trainable parameters: 1,001,472
+trainable params: 1,001,473 || all params: 152,278,785 || trainable%: 0.6577
+Trainable parameters: 1,001,473
 Total parameters: 152,278,785
 Train dataset
 ---------------
-{'turtle': -2, 'debris': -3, 'sea': -4, 'dolphin': -1}
-turtle:  6020
-debris:  53
-sea:  739
-dolphine:  262
-COCO-flickr30 13000
+{'turtle': -2, 'debris': -3, 'dolphin': -1}
+turtle:  5792
+coco 20000
 ---------------
 Validation dataset
-{'turtle': -1, 'debris': -2, 'sea': -3, 'dolphin': -4}
+{'turtle': -2, 'debris': -3, 'dolphin': -1}
 turtle:  724
-debris:  68
-sea:  469
-dolphine:  60
 coco 4014
-flickr30 3178
 ---------------
 Start training
-Epoch 1/50, Loss: 2.8789
-Gradient Norm: 9.081443431321532
+Notifica inviata con successo!
+Notifica inviata con successo!
+TRAINING: Epoch 1/50, Loss: 1.5356

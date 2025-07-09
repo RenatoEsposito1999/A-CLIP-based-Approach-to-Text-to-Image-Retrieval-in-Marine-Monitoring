@@ -5,7 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 
 class NonRepeatingBalancedSampler(Sampler):
-    def __init__(self, dataset, fixed_categories=[-1, -2, -3, -4], samples_per_fixed=16, batch_size=256, drop_last=False):
+    def __init__(self, dataset, fixed_categories=[-1, -2, -3, -4], samples_per_fixed=64, batch_size=256, drop_last=False):
         self.dataset = dataset
         self.samples_per_fixed = samples_per_fixed
         self.coco_samples = batch_size - (samples_per_fixed * len(fixed_categories))

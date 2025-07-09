@@ -10,6 +10,7 @@ import torch
 from src.sampler import ClassBalancedBatchSampler
 from src.new_sampler import NonRepeatingBalancedSampler
 from src.new_dataset import Custom_dataset_augmented
+from src.DATASET_PROVA import dataset_SPERANZA, Collate_fn_clip, Collate_fn_nanoclip
 from src.nanoclip import NanoCLIP
 from src.CLIP_model import CLIP_model
 #from src.dataset import Custom_dataset, Collate_fn
@@ -186,18 +187,20 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     print("-"*15)
     #train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
     #train_dataset = Custom_dataset_category_only_turtle('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
-    train_dataset = Custom_dataset_augmented("./NEW_DATASET", split="train", model=name_model)
+    #TODO train_dataset = Custom_dataset_augmented("./NEW_DATASET", split="train", model=name_model)
+    train_dataset = dataset_SPERANZA("./datasets/", split="train")
     print("-"*15)
     print("Validation dataset")
     #val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)
     #val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
-    val_dataset = Custom_dataset_augmented("./NEW_DATASET", split="val", model=name_model)
+    #TODO val_dataset = Custom_dataset_augmented("./NEW_DATASET", split="val", model=name_model)
+    val_dataset = dataset_SPERANZA("./datasets/", split="val")
     print("-"*15)
     
     class_to_indices = get_class_with_index(train_dataset)
     #sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
-    train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size)
-    val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size)
+    train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
+    val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
     train_dataloader = DataLoader(
         train_dataset, 
         #batch_size=batch_size, 
