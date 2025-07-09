@@ -27,8 +27,8 @@ generic_ransform = T.Compose([
         #T.RandomHorizontalFlip(0.5),
         #T.RandomVerticalFlip(0.1),
         #T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.), # no hue because it distorts the colors
-        T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        #T.ToTensor(),
+        #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
 '''train_heavy_transform = T.Compose([
@@ -60,8 +60,8 @@ generic_ransform = T.Compose([
 train_heavy_transform = T.Compose([
     T.Resize((224, 224)),
     #T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.),
-    T.ToTensor(),
-    T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    #T.ToTensor(),
+    #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 def print_number_trainable_parameters(model):    
@@ -179,8 +179,6 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     #val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
     val_dataset = Custom_dataset_augmented("./NEW_DATASET", split="val", model=name_model)
     print("-"*15)
-  
-   
     
     class_to_indices = get_class_with_index(train_dataset)
     #sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
@@ -208,8 +206,8 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     
     print("Start training")
     optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
-    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
-    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
+    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
+    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
     train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
