@@ -5,6 +5,8 @@ from collections import defaultdict
 import json
 focus_id = [-1,-2,-3,-4]
 
+best_val_loss = float("inf")
+best_recall_5_focuss = -float("inf")
 
 def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, writer, val_dataloader):
     model = model.to(device)
@@ -30,15 +32,23 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
         writer.add_scalar("Loss_train", total_loss / len(dataloader), epoch+1)
 
         print(f"TRAINING: Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
-        # 2. Norma dei gradienti (se sono ~0, il modello non impara)
+        '''# 2. Norma dei gradienti (se sono ~0, il modello non impara)
         total_grad_norm = 0
         for p in model.parameters():
             if p.grad is not None:
                 total_grad_norm += p.grad.data.norm(2).item()
-        print(f"Gradient Norm: {total_grad_norm}")
+        print(f"Gradient Norm: {total_grad_norm}")'''
+        
+        state = {
+            'epoch': epoch+1,
+            'state_dict': model.state_dict(),
+            'train_loss': total_loss/len(dataloader)
+            }
+        torch.save(state, f"./checkpoint_train.pth")
         validation(dataloader=val_dataloader, model=model, loss_fn=loss_fn,writer=writer, train_epoch=epoch, device=device)
 
 def validation(dataloader, model,loss_fn, writer, train_epoch, device):
+    global best_val_loss, best_recall_5_focuss
     model.eval()
     all_img_embs, all_text_embs, all_cats = [], [],[]
     for batch in dataloader:
@@ -57,12 +67,30 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
                 loss = loss_fn(text_embs,img_embs,cats, logit_scale)
                 total_loss += loss.item()
     writer.add_scalar("Val_Loss", total_loss / len(dataloader), train_epoch+1)
-    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}")
+    
+    if (total_loss/len(dataloader)) < best_val_loss:
+        best_val_loss = total_loss/len(dataloader)
+        state = {
+            'epoch': train_epoch+1,
+            'state_dict': model.state_dict(),
+            'best_val_loss': best_val_loss
+            }
+        torch.save(state, f"./best_val_loss.pth")
     all_img_embs = torch.cat(all_img_embs, dim=0)
     all_text_embs = torch.cat(all_text_embs, dim=0)
     all_cats = torch.cat(all_cats,dim=0)
-    compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
-
+    results = compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
+    if (results["cat_focus_R@5"] > best_recall_5_focuss):
+        best_recall_5_focuss = results["cat_focus_R@5"]
+        state = {
+            'epoch': train_epoch+1,
+            'state_dict': model.state_dict(),
+            'val_loss': total_loss/len(dataloader),
+            'best_recall_5': best_recall_5_focuss
+            }
+        torch.save(state, f"./best_recall@5.pth")
+    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5: {results['cat_focus_R@5']}")
+    
 def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1, 5, 10], categories=None):
     text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
     image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
