@@ -240,7 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
     parser.add_argument("--model", type=str, default="clip", help="Model name")
-    parser.add_argument("--n_epochs", type=int, default=50, help="number of epoch")
+    parser.add_argument("--n_epochs", type=int, default=30, help="number of epoch")
 
     args = parser.parse_args()
     

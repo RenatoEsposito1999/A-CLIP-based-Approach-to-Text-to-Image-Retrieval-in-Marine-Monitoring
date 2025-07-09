@@ -3,8 +3,9 @@ from tqdm import tqdm
 import numpy as np
 from collections import defaultdict
 import json
+import torch.nn.functional as F
 focus_id = [-1,-2,-3,-4]
-
+import torch.nn.functional as F
 best_val_loss = float("inf")
 best_recall_5_focuss = -float("inf")
 
@@ -79,7 +80,7 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     all_img_embs = torch.cat(all_img_embs, dim=0)
     all_text_embs = torch.cat(all_text_embs, dim=0)
     all_cats = torch.cat(all_cats,dim=0)
-    results = compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
+    results = compute_metrics_chunked(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
     if (results["cat_focus_R@5"] > best_recall_5_focuss):
         best_recall_5_focuss = results["cat_focus_R@5"]
         state = {
@@ -129,4 +130,51 @@ def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1
         else:
             results[f"cat_focus_R@{k}"] = 0.0
         writer.add_scalar(f"cat_focus_R@{k}", results[f"cat_focus_R@{k}"], epoch+1)
+    return results
+
+
+def compute_metrics_chunked(writer, text_embeddings, image_embeddings, epoch, k_values=[1, 5, 10], categories=None, chunk_size=1024):
+    device = text_embeddings.device
+    text_embeddings = F.normalize(text_embeddings, dim=1)
+    image_embeddings = F.normalize(image_embeddings, dim=1)
+    categories = categories.to(device)
+
+    total_queries = text_embeddings.size(0)
+    results = {f"cat_all_R@{k}": 0 for k in k_values}
+    results.update({f"cat_focus_R@{k}": 0 for k in k_values})
+    focus_id_tensor = torch.tensor(focus_id, device=device)
+
+    focus_mask = torch.isin(categories, focus_id_tensor)
+    total_focus = focus_mask.sum().item()
+
+    for start in range(0, total_queries, chunk_size):
+        end = min(start + chunk_size, total_queries)
+        text_chunk = text_embeddings[start:end]  # (B, D)
+        cat_chunk = categories[start:end]        # (B,)
+
+        # Compute similarity only for this chunk vs all images
+        sim = text_chunk @ image_embeddings.T  # (B, N_images)
+        top_k_indices = torch.topk(sim, k=max(k_values), dim=1).indices  # (B, max_k)
+        retrieved_cats = categories[top_k_indices]  # (B, max_k)
+
+        for k in k_values:
+            retrieved_at_k = retrieved_cats[:, :k]        # (B, k)
+            correct_global = (retrieved_at_k == cat_chunk.unsqueeze(1)).any(dim=1).sum().item()
+            results[f"cat_all_R@{k}"] += correct_global
+
+            # Focus subset
+            focus_chunk_mask = torch.isin(cat_chunk, focus_id_tensor)  # (B,)
+            if focus_chunk_mask.any():
+                focus_indices = torch.where(focus_chunk_mask)[0]
+                retrieved_focus = retrieved_at_k[focus_indices]
+                cats_focus = cat_chunk[focus_indices].unsqueeze(1)
+                correct_focus = (retrieved_focus == cats_focus).any(dim=1).sum().item()
+                results[f"cat_focus_R@{k}"] += correct_focus
+
+    for k in k_values:
+        results[f"cat_all_R@{k}"] /= total_queries
+        results[f"cat_focus_R@{k}"] /= max(total_focus, 1)
+        writer.add_scalar(f"cat_all_R@{k}", results[f"cat_all_R@{k}"], epoch+1)
+        writer.add_scalar(f"cat_focus_R@{k}", results[f"cat_focus_R@{k}"], epoch+1)
+
     return results

@@ -66,7 +66,7 @@ class dataset_SPERANZA(Dataset):
             "debris": -3,
             "dolphin": -1
         }
-        print(category_info)
+        #print(category_info)
         unique_category = 0
         # load all captions
         '''
@@ -150,7 +150,7 @@ class dataset_SPERANZA(Dataset):
         self.imgs_COCO = list(self.captions_COCO.keys())
         random.shuffle(self.imgs_COCO)
         
-        
+
         # split the dataset
         if split == 'train':
             #self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
@@ -158,8 +158,8 @@ class dataset_SPERANZA(Dataset):
             '''self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]'''
-            self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
-            self.imgs_COCO = self.imgs_COCO[:20000]
+            self.imgs_COCO = self.imgs_COCO[ : int(0.5 * len(self.imgs_COCO))] # 20k
+            #self.imgs_COCO = self.imgs_COCO[:20000]
         elif split == 'val':
             #self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
@@ -167,7 +167,8 @@ class dataset_SPERANZA(Dataset):
             '''self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]'''
-            self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
+            self.imgs_COCO = self.imgs_COCO[int(0.5 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))] # 16k
+
         elif split == "test":
             #self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
