@@ -30,13 +30,13 @@ class Custom_dataset_category_only_turtle(Dataset):
         # make sur flickr30k_images folder exists in the base_path
         base_path = pathlib.Path(base_path)
         img_dir = base_path / "images"
-        img_dir_flicker = img_dir / "flickr30k_images"
+        #img_dir_flicker = img_dir / "flickr30k_images"
         img_dir_COCO = img_dir / "COCO"
         img_dir_turtle = img_dir / "Train_cropped"
         img_dir_other_turtle = img_dir / "other_turtle"
         
         annotations_dir = base_path / "annotations"
-        annotations_flicker =  annotations_dir / "captionsFlicker.txt"
+        #annotations_flicker =  annotations_dir / "captionsFlicker.txt"
         annotations_COCO = annotations_dir / "COCO_with_category.csv"
         annotations_turtle = annotations_dir / "cropped_turtle.csv"
         annotations_debris = annotations_dir / "cropped_debris.csv"
@@ -54,18 +54,18 @@ class Custom_dataset_category_only_turtle(Dataset):
         if self.generic_transform is None:
             self.generic_transform  = T.Compose([
                         T.Resize((224, 224)),
-                        T.ToTensor(),
-                        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                        #T.ToTensor(),
+                        #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ])
         self.txt_transform = txt_transform
         self.is_val = is_val
         
         self.split = split
         category_info ={
-            "turtle": -1,
-            "debris": -2,
-            "sea": -3,
-            "dolphin": -4
+            "turtle": -2,
+            "debris": -3,
+            "sea": -4,
+            "dolphin": -1
         }
         print(category_info)
         unique_category = 0
@@ -76,13 +76,13 @@ class Custom_dataset_category_only_turtle(Dataset):
         #START TO INSERT FLICKR30
         self.captions_flickr30 = defaultdict(list)
         
-        with open(annotations_flicker, 'r') as f:
+        '''with open(annotations_flicker, 'r') as f:
             for line in f.readlines()[1:]: # ignore the header (first line)
                 image, caption_number, caption = line.strip().split(',', 2)
                 if caption_number == "0":
                     self.captions_flickr30[img_dir_flicker / image].append(caption)
                     self.captions_flickr30[img_dir_flicker / image].append(unique_category)
-                    unique_category += 1
+                    unique_category += 1'''
                 
         
         #START TO INSERT TURTLE (TURTLE AND OTHER TURTLE)    
@@ -95,13 +95,13 @@ class Custom_dataset_category_only_turtle(Dataset):
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_turtle[img_dir_turtle / image].append(caption)
-            self.captions_turtle[img_dir_turtle / image].append(-1)'''
+            self.captions_turtle[img_dir_turtle / image].append(-2)'''
         
         self.df = pd.read_csv(annotations_other_turtle)
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_turtle[img_dir_other_turtle / image].append(caption)
-            self.captions_turtle[img_dir_other_turtle / image].append(-1)
+            self.captions_turtle[img_dir_other_turtle / image].append(-2)
         
         #START TO INSERT DEBRIS          
         self.captions_debris = defaultdict(list)
@@ -109,7 +109,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_debris[img_dir_turtle / image].append(caption)
-            self.captions_debris[img_dir_turtle / image].append(-2)
+            self.captions_debris[img_dir_turtle / image].append(-3)
     
         #START TO INSERT SEA           
         self.captions_sea = defaultdict(list)
@@ -117,7 +117,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_sea[img_dir_turtle / image].append(caption)
-            self.captions_sea[img_dir_turtle / image].append(-3)
+            self.captions_sea[img_dir_turtle / image].append(-4)
             
         #START TO INSERT DOLPHINE        
         self.captions_dolphine = defaultdict(list)
@@ -125,7 +125,7 @@ class Custom_dataset_category_only_turtle(Dataset):
         for idx,row in self.df.iterrows():
             image, comment_number, caption, category = row
             self.captions_dolphine[img_dir_turtle / image].append(caption)
-            self.captions_dolphine[img_dir_turtle / image].append(-4)     
+            self.captions_dolphine[img_dir_turtle / image].append(-1)     
         #START TO INSERT COCO
         self.captions_COCO = defaultdict(list)
         self.df = pd.read_csv(annotations_COCO)
@@ -137,8 +137,8 @@ class Custom_dataset_category_only_turtle(Dataset):
                 
                 
         # get all image names
-        self.imgs_flickr30 = list(self.captions_flickr30.keys())
-        random.shuffle(self.imgs_flickr30)
+        #self.imgs_flickr30 = list(self.captions_flickr30.keys())
+        #random.shuffle(self.imgs_flickr30)
         self.imgs_turtle = list(self.captions_turtle.keys())
         random.shuffle(self.imgs_turtle)
         self.imgs_debris = list(self.captions_debris.keys())
@@ -153,14 +153,15 @@ class Custom_dataset_category_only_turtle(Dataset):
         
         # split the dataset
         if split == 'train':
-            self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
+            #self.imgs_flickr30 = self.imgs_flickr30[ : int(0.8 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
             self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[ : int(0.8 * len(self.imgs_COCO))]
+            self.imgs_COCO = self.imgs_COCO[:21000]
         elif split == 'val':
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
+            #self.imgs_flickr30 = self.imgs_flickr30[int(0.8 * len(self.imgs_flickr30)) : int(0.9 * len(self.imgs_flickr30))]
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
             #self.imgs_turtle = random.sample(self.imgs_turtle, 300)
             self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
@@ -168,7 +169,7 @@ class Custom_dataset_category_only_turtle(Dataset):
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
         elif split == "test":
-            self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
+            #self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
             self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
             self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
@@ -210,9 +211,9 @@ class Custom_dataset_category_only_turtle(Dataset):
         print("sea: ", len(self.imgs_sea))
         print("dolphine: ",len(self.imgs_dolphine))
         print("coco", len(self.imgs_COCO))
-        print("flickr30", len(self.imgs_flickr30))
+        #print("flickr30", len(self.imgs_flickr30))
         
-        self.imgs = self.imgs_COCO + self.imgs_turtle 
+        self.imgs = self.imgs_COCO + self.imgs_turtle + self.imgs_debris + self.imgs_dolphine 
         #self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
         self.captions = self.captions_flickr30 | self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
