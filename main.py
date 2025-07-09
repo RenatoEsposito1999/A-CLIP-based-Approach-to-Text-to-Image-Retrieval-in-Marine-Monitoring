@@ -16,6 +16,7 @@ from src.CLIP_model import CLIP_model
 from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_nanoclip, Collate_fn_clip
 from src.loss import contrastiveLoss
 from src.train import train
+import os
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 
@@ -118,8 +119,28 @@ def get_class_with_index(dataset):
     
     return dict(class_to_indices)
 
+
+def get_next_version(log_dir: str) -> int:
+    """Trova il prossimo numero di versione disponibile."""
+    os.makedirs(log_dir, exist_ok=True)  # Crea la cartella se non esiste
+    existing_versions = []
+    
+    for d in os.listdir(log_dir):
+        if os.path.isdir(os.path.join(log_dir, d)) and d.startswith("version_"):
+            try:
+                num = int(d.split("_")[1])
+                existing_versions.append(num)
+            except ValueError:
+                continue  # Ignora cartelle con formato non valido
+    
+    return max(existing_versions) + 1 if existing_versions else 0
+
 def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
-    writer = SummaryWriter(log_dir="logs/NanoCLIP")  # Sostituisci "experiment_name" con un 
+    # Cartella base per i log (es: "logs/NanoCLIP")
+    log_base_dir = "logs/NanoCLIP"
+    next_version = get_next_version(log_base_dir)
+    log_dir = os.path.join(log_base_dir, f"version_{next_version}")
+    writer = SummaryWriter(log_dir=log_dir)  # Sostituisci "experiment_name" con un 
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     if name_model == "nanoclip":
@@ -163,12 +184,13 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     
     class_to_indices = get_class_with_index(train_dataset)
     #sampler = ClassBalancedBatchSampler(class_to_indices, batch_size=batch_size, classes_per_batch=16)
-    sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size)
+    train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size)
+    val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size)
     train_dataloader = DataLoader(
         train_dataset, 
         #batch_size=batch_size, 
         #shuffle=True,
-        batch_sampler = sampler, 
+        batch_sampler = train_sampler, 
         num_workers=4, 
         pin_memory=True, 
         collate_fn=collate_fn # captions_to_use='random' or 'first' or 'all'
@@ -176,9 +198,9 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
 
     val_dataloader = DataLoader(
         val_dataset, 
-        batch_size=batch_size, 
-        shuffle=False,
-        #batch_sampler = sampler_val,
+        #batch_size=batch_size, 
+        #shuffle=False,
+        batch_sampler = val_sampler,
         num_workers=4, 
         pin_memory=True,
         collate_fn=collate_fn # in eval we use the first caption only
@@ -186,8 +208,8 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     
     print("Start training")
     optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
-    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
-    send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
+    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
+    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
     train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
