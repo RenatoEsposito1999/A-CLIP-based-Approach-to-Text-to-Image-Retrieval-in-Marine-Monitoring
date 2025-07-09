@@ -16,6 +16,8 @@ from src.CLIP_model import CLIP_model
 from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_nanoclip, Collate_fn_clip
 from src.loss import contrastiveLoss
 from src.train import train
+import random
+import numpy as np
 import os
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
@@ -135,8 +137,20 @@ def get_next_version(log_dir: str) -> int:
     
     return max(existing_versions) + 1 if existing_versions else 0
 
+def seed_everything(seed: int):
+    """Imposta il seed per tutte le librerie principali."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # Per multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+
 def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     # Cartella base per i log (es: "logs/NanoCLIP")
+    seed_everything(12345)
     log_base_dir = "logs/NanoCLIP"
     next_version = get_next_version(log_base_dir)
     log_dir = os.path.join(log_base_dir, f"version_{next_version}")
