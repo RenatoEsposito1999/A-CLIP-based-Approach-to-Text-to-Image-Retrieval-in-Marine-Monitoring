@@ -68,7 +68,7 @@ class Custom_dataset_augmented(Dataset):
         category_info ={
             "turtle": -2,
             "debris": -3,
-            "sea": -4,
+            #"sea": -4,
             "dolphin": -1
         }
         print(category_info)
