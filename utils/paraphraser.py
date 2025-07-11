@@ -51,20 +51,28 @@ class LLM():
         if len(used_list) > 0:
 
             messages = [
-                {"role": "system", "content": f"""Rewrite this sentence in one small sentence keeping the same meaning but using different words.  
-                                                Do not repeat the original structure and do not add details not present in the original sentence.
-                                                Ensure the new version is not similar to any in this list: {used_list}"""},
+                {"role": "system",
+                "content": f"""Rewrite this sentence in a concise way while preserving the original meaning but correcting factual errors.  
+                The word "giraffe" is INCORRECT and should be interpreted as "araffe" (a sea turtle) or in general as a sea turtle.  
+                If the original sentence mentions "two animals" (two animals, giraffe and or turtles), it is WRONG because the image contains ONLY ONE TURTLE.  
+                Ensure the rewritten sentence reflects this correction. 
+                Do not copy the original structure.  
+                Do not add extra details.  
+                Avoid similarity with these previous rephrasings: {used_list} (if provided)."""},
                 {"role": "user", "content": f"{sentence}"},
             ]
         else:
             messages = [
-                {"role": "system", "content": f"""Rewrite this sentence in one small sentence keeping the same meaning but using different words.  
-                                                Do not repeat the original structure and do not add details not present in the original sentence."""},
+                {"role": "system", "content": f"""Rewrite this sentence in a concise way while preserving the original meaning but correcting factual errors.  
+                            The word "giraffe" is INCORRECT and should be interpreted as "araffe" (a sea turtle) or in general as a sea turtle.  
+                            If the original sentence mentions "two animals" (two animals, giraffe and or turtles), it is WRONG because the image contains ONLY ONE TURTLE.  
+                            Ensure the rewritten sentence reflects this correction. 
+                            Do not copy the original structure.  
+                            Do not add extra details."""},
                 {"role": "user", "content": f"{sentence}"},
             ]
 
-        
-        
+
         outputs= llama_pipe(#prompt,
                             messages,
                             max_new_tokens=30,  # Limita la lunghezza    
