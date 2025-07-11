@@ -1,143 +1,111 @@
-import random
-from torch.utils.data import Sampler
+import torch
+import numpy as np
+from torch.utils.data.sampler import Sampler
+from collections import defaultdict
+from tqdm import tqdm
 
-class ClassBalancedBatchSampler(Sampler):
-    def __init__(self, class_to_indices, batch_size=256, classes_per_batch=16):
-        assert batch_size % classes_per_batch == 0, "batch_size deve essere divisibile per classes_per_batch"
-        
-        self.class_to_indices = class_to_indices
-        self.batch_size = batch_size
-        self.classes_per_batch = classes_per_batch
-        self.samples_per_class = batch_size // classes_per_batch
-        self.class_list = list(class_to_indices.keys())
-        # Calcola il numero totale di campioni unici
-        self.total_unique_samples = sum(len(indices) for indices in class_to_indices.values())
+class NonRepeatingBalancedSampler(Sampler):
+    def __init__(self, dataset, fixed_categories=[-1, -2, -3, -4], samples_per_fixed=64, batch_size=256, drop_last=False):
+        self.dataset = dataset
+        self.samples_per_fixed = samples_per_fixed
+        self.coco_samples = batch_size - (samples_per_fixed * len(fixed_categories))
+        self.drop_last = drop_last
+        self.fixed_categories = fixed_categories
+        self.category_indices = defaultdict(list)
+        for idx, img_name in tqdm(enumerate(dataset.imgs), total=len(dataset.imgs)):
+            category = dataset.captions[img_name][1]
+            self.category_indices[category].append(idx)
+
+        self.coco_categories = [cat for cat in self.category_indices.keys() if cat >= 0]
+        self.reset()  # Inizializza gli indici disponibili e usati
+
+    def reset(self):
+        """Resetta gli indici usati all'inizio di una nuova epoca."""
+        self.available_indices = {}
+        self.used_indices = set()  # Tiene traccia di tutti gli indici usati nell'epoca corrente
+
+        for cat in self.category_indices:
+            idxs = self.category_indices[cat].copy()
+            np.random.shuffle(idxs)
+            self.available_indices[cat] = idxs
+
+    def _take_available_samples(self, category, num_samples):
+        """Prende `num_samples` dalla categoria, evitando ripetizioni."""
+        taken = []
+        remaining = num_samples
+        '''if(category == -2):
+            print("RIMANENTI TURTLE: ", len(self.available_indices[category]))'''
+        while remaining > 0 and len(self.available_indices[category]) > 0:
+            idx = self.available_indices[category].pop(0)
+            if idx not in self.used_indices:
+                taken.append(idx)
+                self.used_indices.add(idx)
+                remaining -= 1
+
+        return taken
+
+    def _sample_from_coco(self, num_samples):
+        """Campiona da COCO senza ripetere indici già usati."""
+        coco_indices = []
+        remaining = 0
+        for cat in self.coco_categories:
+            coco_indices.extend(self.available_indices[cat])
+    
+        np.random.shuffle(coco_indices)
+        selected = []
+        for idx in coco_indices:
+            if idx not in self.used_indices:
+                remaining += 1
+        #print("COCO REMAINING: ", remaining)
+        for idx in coco_indices:
+            if idx not in self.used_indices:
+                selected.append(idx)
+                self.used_indices.add(idx)
+                if len(selected) >= num_samples:
+                    break
+        #print(len(selected))
+        return selected
 
     def __iter__(self):
-        shuffled_indices = {cls: random.sample(indices, len(indices)) for cls, indices in self.class_to_indices.items()}
-        used_ptr = {cls: 0 for cls in self.class_list}
-        total_used_unique = 0
-
-        while total_used_unique < self.total_unique_samples:
+        self.reset()  # Resetta all'inizio di ogni epoca
+        batch_count = 0
+        flag = False
+        while True:
             batch = []
-            selected_classes = random.sample(self.class_list, self.classes_per_batch)
-            class_distribution = {cls: 0 for cls in selected_classes}
 
-            for cls in selected_classes:
-                # Prendi campioni freschi se disponibili
-                if used_ptr[cls] < len(shuffled_indices[cls]):
-                    take = shuffled_indices[cls][used_ptr[cls] : used_ptr[cls] + self.samples_per_class]
-                    actual_take = len(take)
-                    batch.extend(take)
-                    used_ptr[cls] += actual_take
-                    total_used_unique += actual_take
-                    class_distribution[cls] += actual_take
+            # 1. Campiona dalle categorie fisse (se esaurite, riempi con COCO)
+            for cat in self.fixed_categories:
+                taken = self._take_available_samples(cat, self.samples_per_fixed)
+                batch.extend(taken)
 
-                    # Se mancano campioni, riempie con reshuffle
-                    if actual_take < self.samples_per_class:
-                        needed = self.samples_per_class - actual_take
-                        random.shuffle(shuffled_indices[cls])
-                        batch.extend(shuffled_indices[cls][:needed])
-                        used_ptr[cls] = needed
-                        class_distribution[cls] += needed
-                else:
-                    # Solo reshuffle se nessun campione fresco rimasto
-                    random.shuffle(shuffled_indices[cls])
-                    batch.extend(shuffled_indices[cls][:self.samples_per_class])
-                    used_ptr[cls] = self.samples_per_class
-                    class_distribution[cls] += self.samples_per_class
-
+                # Se non ne ha abbastanza, riempi con COCO
+                if len(taken) < self.samples_per_fixed:
+                    if cat == -2:
+                        flag = True
+                    needed = self.samples_per_fixed - len(taken)
+                    '''extra_coco = self._sample_from_coco(needed)
+                    batch.extend(extra_coco)'''
+                    extra_turtle = self._take_available_samples(-2, needed)
+                    batch.extend(extra_turtle)
             
+             
+            # 2. Aggiungi altri sample COCO (opzionale)
+            if self.coco_samples > 0:
+                extra_coco = self._sample_from_coco(self.coco_samples)
+                batch.extend(extra_coco)
+            
+            if flag:
+                break 
 
+            # Se il batch è vuoto, termina
+            if len(batch) == 0:
+                break
+            np.random.shuffle(batch)
             yield batch
+            batch_count += 1
 
     def __len__(self):
-        # Stima il numero di batch che verranno prodotti
-        return (self.total_unique_samples + self.batch_size - 1) // self.batch_size
-
-'''import random
-from torch.utils.data import Sampler
-
-class ClassBalancedBatchSampler(Sampler):
-    def __init__(self, class_to_indices, batch_size=256, classes_per_batch=8):
-        self.class_to_indices = class_to_indices
-        self.batch_size = batch_size
-        self.classes_per_batch = classes_per_batch
-        self.samples_per_class = batch_size // classes_per_batch
-        self.class_list = list(class_to_indices.keys())
-
-        # Copy & shuffle all indices per classe
-        self.shuffled_class_indices = {k: random.sample(v, len(v)) for k, v in class_to_indices.items()}
-        self.num_samples = sum(len(v) for v in class_to_indices.values())
-
-        # Serve per evitare di usare due volte lo stesso indice
-        self.used_indices = set()
-
-    def __iter__(self):
-        used_indices = set()
-        self.shuffled_class_indices = {k: random.sample(v, len(v)) for k, v in self.class_to_indices.items()}
-        batches = []
-        remaining = True
-
-        while remaining:
-            selected_classes = random.sample(self.class_list, self.classes_per_batch)
-            batch = []
-            for cls in selected_classes:
-                cls_indices = self.shuffled_class_indices[cls]
-
-                # Se la classe ha meno esempi rimasti di quelli richiesti
-                if len(cls_indices) < self.samples_per_class:
-                    # Rimuovi quelli già usati e reshuffla
-                    all_indices = list(set(self.class_to_indices[cls]) - used_indices)
-                    if len(all_indices) < self.samples_per_class:
-                        # Se ancora insufficienti, prendi tutto ciò che puoi
-                        take = all_indices
-                    else:
-                        take = random.sample(all_indices, self.samples_per_class)
-                    self.shuffled_class_indices[cls] = list(set(cls_indices) - set(take))
-                else:
-                    take = cls_indices[:self.samples_per_class]
-                    self.shuffled_class_indices[cls] = cls_indices[self.samples_per_class:]
-
-                batch.extend(take)
-                used_indices.update(take)
-
-            # Stop if batch is incomplete or all data is used
-            if len(batch) == self.batch_size:
-                batches.append(batch)
-
-            if len(used_indices) >= self.num_samples:
-                remaining = False
-        return iter(batches)
-
-    def __len__(self):
-        return self.num_samples // self.batch_size'''
-
-# Esempio di dataset fittizio
-'''class_to_indices = {
-    0: list(range(3792)),
-    1: list(range(5516)),
-    2: list(range(8529)),
-    3: list(range(4678)),
-    4: list(range(2220)),
-    5: list(range(1697)),
-    6: list(range(2479)),
-    7: list(range(1106)),
-    8: list(range(2537)),
-    9: list(range(3380)),
-    10: list(range(2073)),
-    11: list(range(2089)),
-    12: list(range(27631)),
-    13: list(range(627)),
-    14: list(range(5106)),
-    15: list(range(531))
-}
-# Istanzia il sampler
-sampler = ClassBalancedBatchSampler(class_to_indices)
-
-# Simula un'iterazione del DataLoader
-for i, batch in enumerate(sampler):
-    print(batch)
-    print(f"\nBatch {i}: Primi 5 elementi = {batch[:5]}")
-    if i == 1:  # Interrompi dopo 2 batch per il test
-        break'''
+        # Stima conservativa del numero di batch
+        total_samples = sum(len(idxs) for idxs in self.category_indices.values())
+        batch_size = (len(self.fixed_categories) * self.samples_per_fixed) + self.coco_samples
+        return total_samples // batch_size
