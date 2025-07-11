@@ -104,6 +104,6 @@ def compute_loss(image_embedding, text_embedding, cats, temperature=None):
     uniloss = UniLoss(image_embedding=image_embedding, text_embedding=text_embedding, cats=cats, temperature=temperature)
     contrastive_loss = contrastiveLoss(image_embedding=image_embedding, text_embedding=text_embedding, temperature=temperature)
     
-    loss = (uniloss + contrastive_loss) / 2
+    total_loss = (uniloss + contrastive_loss) / 2
     
-    return loss
+    return total_loss, uniloss, contrastive_loss
