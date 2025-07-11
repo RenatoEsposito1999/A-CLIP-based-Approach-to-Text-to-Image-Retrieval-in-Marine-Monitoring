@@ -107,3 +107,8 @@ TURTLE_OTHER
 *.out
 *.pth
 utils/TOKEN.py
+Debris/
+Dolphin/
+Sea/
+Turtle/
+Turtle_other/
