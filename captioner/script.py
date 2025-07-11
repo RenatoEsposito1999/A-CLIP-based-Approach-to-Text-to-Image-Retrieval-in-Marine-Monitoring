@@ -1,7 +1,7 @@
 import pandas as pd
 import json
 # Read the CSV data into a pandas DataFrame
-df = pd.read_csv("./image_captions.csv")
+df = pd.read_csv("/workspace/text-to-image-retrivial/utils/definitivo.csv")
 
 # Calculate the frequency of each caption
 caption_counts = df['caption'].value_counts()
