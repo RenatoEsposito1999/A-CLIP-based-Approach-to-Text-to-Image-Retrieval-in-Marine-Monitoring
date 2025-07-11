@@ -1,9 +1,9 @@
 import requests
-import custom_utils.TOKEN as TOKEN
+from TOKEN import TOKEN as tk
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 def send_telegram_notification(message, CHAT_ID: list):
-    url = f"https://api.telegram.org/bot{TOKEN.TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{tk}/sendMessage"
     for id in CHAT_ID:
         payload = {
             "chat_id": id,
