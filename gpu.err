@@ -1,23 +1,0 @@
-Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
-  0%|          | 0/20074 [00:00<?, ?it/s]100%|██████████| 20074/20074 [00:00<00:00, 685711.50it/s]
-  0%|          | 0/50 [00:00<?, ?it/s]  2%|▏         | 1/50 [01:00<49:35, 60.73s/it]  2%|▏         | 1/50 [01:11<58:19, 71.43s/it]
-Traceback (most recent call last):
-  File "/workspace/text-to-image-retrivial/main.py", line 201, in <module>
-    main(batch_size=args.bs, lr=args.lr, dim=args.dim, device= args.device, wd = args.wd, name_model=args.model, n_epochs=args.n_epochs)
-  File "/workspace/text-to-image-retrivial/main.py", line 184, in main
-    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
-  File "/workspace/text-to-image-retrivial/src/train.py", line 19, in train
-    for batch in dataloader:
-  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 708, in __next__
-    data = self._next_data()
-  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1458, in _next_data
-    idx, data = self._get_data()
-  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1410, in _get_data
-    success, data = self._try_get_data()
-  File "/venv/tesi/lib/python3.10/site-packages/torch/utils/data/dataloader.py", line 1251, in _try_get_data
-    data = self._data_queue.get(timeout=timeout)
-  File "/venv/tesi/lib/python3.10/queue.py", line 180, in get
-    self.not_empty.wait(remaining)
-  File "/venv/tesi/lib/python3.10/threading.py", line 324, in wait
-    gotit = waiter.acquire(True, timeout)
-KeyboardInterrupt
