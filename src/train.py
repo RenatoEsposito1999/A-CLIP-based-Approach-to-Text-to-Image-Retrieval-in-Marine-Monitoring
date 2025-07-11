@@ -14,6 +14,8 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
     for epoch in tqdm(range(n_epochs)):
         model.train()
         total_loss = 0
+        total_uni = 0 
+        total_contrastive = 0 
         for batch in dataloader:
             images, captions, masks, cats = batch
             images = images.to(device)
@@ -21,16 +23,20 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             masks = masks.to(device)
             cats = cats.to(device)
             img_embs,text_embs, logit_scale=model(images,captions,masks)
-            
-            loss = loss_fn(img_embs, text_embs, cats, logit_scale)
+            #TODO Ritorna 3 losss, scriverle su tensoboard 
+            loss, uniloss, contrastiveloss = loss_fn(img_embs, text_embs, cats, logit_scale)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         
             total_loss += loss.item()
-    
+            total_uni += uniloss.item()
+            total_contrastive += contrastiveloss.item()
+
             scheduler.step()
         writer.add_scalar("Loss_train", total_loss / len(dataloader), epoch+1)
+        writer.add_scalar("Uni Loss Training", total_uni / len(dataloader), epoch+1)
+        writer.add_scalar("Contrastive loss Training", contrastiveloss / len(dataloader), epoch+1)
 
         print(f"TRAINING: Epoch {epoch+1}/{n_epochs}, Loss: {total_loss/len(dataloader):.4f}")
         '''# 2. Norma dei gradienti (se sono ~0, il modello non impara)
