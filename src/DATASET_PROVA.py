@@ -31,8 +31,8 @@ class dataset_SPERANZA(Dataset):
         img_dir = base_path / "images"
         #img_dir_flicker = img_dir / "flickr30k_images"
         img_dir_COCO = img_dir / "COCO"
-        img_dir_turtle = img_dir / "Train_cropped"
-        img_dir_other_turtle = img_dir / "other_turtle"
+        img_dir_turtle = img_dir / "Turtle"
+        img_dir_other_turtle = img_dir / "Turtle_other"
         
         annotations_dir = base_path / "annotations"
         #annotations_flicker =  annotations_dir / "captionsFlicker.txt"
