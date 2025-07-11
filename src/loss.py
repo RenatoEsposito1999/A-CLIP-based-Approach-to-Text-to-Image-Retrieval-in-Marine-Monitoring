@@ -5,16 +5,17 @@ from collections import defaultdict
 
 def build_target_matrix(flags):
         """
-        Costruisce la matrice target per SupConLoss.
+        Builds the target matrix for SupConLoss.
+
         Args:
-            flags: vettore con le etichette delle classi (es. [1,1,1,0,0,2,2])
-    
+            flags: A vector containing class labels (e.g., [1,1,1,0,0,2,2]).
+
         Returns:
-            Matrice target dove target[i,j] = 1 se flags[i] == flags[j], 0 altrimenti
+            Target matrix where target[i,j] = 1 if flags[i] == flags[j], 0 otherwise.
         """
         #print(flags)
-        '''number_categories = defaultdict(int)
-        for x in flags.tolist():
+        number_categories = defaultdict(int)
+        '''for x in flags.tolist():
             if x < 0:
                 number_categories[x] += 1
         print(number_categories)
@@ -33,7 +34,7 @@ def build_target_matrix(flags):
         #target.fill_diagonal_(0)
         return target
 
-def contrastiveLoss(image_embedding, text_embedding, cats, temperature=None):
+def UniLoss(image_embedding, text_embedding, cats, temperature=None):
     """
     Compute the UniLoss (bidirectional contrastive loss) as used by Microsoft.
     
@@ -46,7 +47,6 @@ def contrastiveLoss(image_embedding, text_embedding, cats, temperature=None):
     Returns:
         Scalar loss value
     """
-    batch_size = image_embedding.shape[0]
     if temperature:
         temperature = torch.clamp(temperature.exp(), max=100)
         temperature = 1/temperature
@@ -80,3 +80,30 @@ def contrastiveLoss(image_embedding, text_embedding, cats, temperature=None):
 
     return loss
 
+
+def contrastiveLoss(image_embedding, text_embedding, temperature=None):
+    batch_size = image_embedding.shape[0]
+    if temperature:
+        temperature = torch.clamp(temperature.exp(), max=100)
+        temperature = 1/temperature
+    else:
+        temperature = 0.07
+        
+    # we create dummy labels for the batch.
+    labels = torch.arange(batch_size, device=image_embedding.device)
+    
+    logits = torch.matmul(image_embedding, text_embedding.T) / temperature
+    loss_i2t = F.cross_entropy(logits, labels)
+    loss_t2i = F.cross_entropy(logits.T, labels)
+    total_loss = (loss_i2t + loss_t2i) / 2   
+
+    return total_loss
+
+
+def compute_loss(image_embedding, text_embedding, cats, temperature=None):
+    uniloss = UniLoss(image_embedding=image_embedding, text_embedding=text_embedding, cats=cats, temperature=temperature)
+    contrastive_loss = contrastiveLoss(image_embedding=image_embedding, text_embedding=text_embedding, temperature=temperature)
+    
+    loss = (uniloss + contrastive_loss) / 2
+    
+    return loss

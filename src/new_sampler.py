@@ -69,7 +69,7 @@ class NonRepeatingBalancedSampler(Sampler):
     def __iter__(self):
         self.reset()  # Resetta all'inizio di ogni epoca
         batch_count = 0
-
+        flag = False
         while True:
             batch = []
 
@@ -80,17 +80,22 @@ class NonRepeatingBalancedSampler(Sampler):
 
                 # Se non ne ha abbastanza, riempi con COCO
                 if len(taken) < self.samples_per_fixed:
+                    if cat == -2:
+                        flag = True
                     needed = self.samples_per_fixed - len(taken)
                     '''extra_coco = self._sample_from_coco(needed)
                     batch.extend(extra_coco)'''
                     extra_turtle = self._take_available_samples(-2, needed)
                     batch.extend(extra_turtle)
-                
-
+            
+             
             # 2. Aggiungi altri sample COCO (opzionale)
             if self.coco_samples > 0:
                 extra_coco = self._sample_from_coco(self.coco_samples)
                 batch.extend(extra_coco)
+            
+            if flag:
+                break 
 
             # Se il batch è vuoto, termina
             if len(batch) == 0:
