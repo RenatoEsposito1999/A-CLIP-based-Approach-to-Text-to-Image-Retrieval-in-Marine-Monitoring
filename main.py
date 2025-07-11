@@ -8,7 +8,7 @@ from transformers import AutoProcessor
 from src.sampler import NonRepeatingBalancedSampler
 from src.new_dataset import Custom_dataset_augmented
 from src.DATASET_PROVA import dataset_SPERANZA, Collate_fn
-from src.CLIP_model import CLIP_model
+from src.model import CLIP_model
 #from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_clip
 from src.loss import compute_loss
 from src.train import train
@@ -21,10 +21,6 @@ from utils.version_log_tensorboard import get_next_version
 generic_ransform = T.Compose([
         T.Resize((224, 224)),
     ])
-
-train_heavy_transform = T.Compose([
-    T.Resize((224, 224)),
-])
 
 
 def main(batch_size, lr, device, wd, n_epochs):
