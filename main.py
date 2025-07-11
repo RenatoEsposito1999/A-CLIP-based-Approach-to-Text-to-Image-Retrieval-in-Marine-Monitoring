@@ -15,7 +15,7 @@ from src.nanoclip import NanoCLIP
 from src.CLIP_model import CLIP_model
 #from src.dataset import Custom_dataset, Collate_fn
 from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_nanoclip, Collate_fn_clip
-from src.loss import contrastiveLoss
+from src.loss import compute_loss
 from src.train import train
 import random
 import numpy as np
@@ -225,7 +225,7 @@ def main(batch_size, lr, dim, device, wd, name_model, n_epochs):
     optimizer, scheduler = get_optimizer_and_scheduler(model,name_model = name_model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
     send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Inizio il Training!", CHAT_ID=CHAT_ID_RENATO)
-    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=contrastiveLoss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_VINCENZO)
     send_telegram_notification(message="Training completato!", CHAT_ID=CHAT_ID_RENATO)
     writer.close()
@@ -240,7 +240,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
     parser.add_argument("--model", type=str, default="clip", help="Model name")
-    parser.add_argument("--n_epochs", type=int, default=30, help="number of epoch")
+    parser.add_argument("--n_epochs", type=int, default=50, help="number of epoch")
 
     args = parser.parse_args()
     
