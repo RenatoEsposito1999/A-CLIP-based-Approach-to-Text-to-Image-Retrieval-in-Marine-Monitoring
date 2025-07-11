@@ -25,7 +25,6 @@ class dataset_SPERANZA(Dataset):
     The images are in the flickr30k_images folder.
     The captions are in the captions.txt file.
     """
-
     def __init__(self, base_path, split='train', turtle_transform=None, txt_transform=None, generic_transform=None, is_val = False):
         # make sur flickr30k_images folder exists in the base_path
         base_path = pathlib.Path(base_path)
@@ -54,8 +53,6 @@ class dataset_SPERANZA(Dataset):
         if self.generic_transform is None:
             self.generic_transform  = T.Compose([
                         T.Resize((224, 224)),
-                        #T.ToTensor(),
-                        #T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
                     ])
         self.txt_transform = txt_transform
         self.is_val = is_val
@@ -245,55 +242,8 @@ class dataset_SPERANZA(Dataset):
         if self.txt_transform:
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, category
-
-class Collate_fn_nanoclip:
-    """    
-        Collate class for the dataloader (to be called in the dataloader)
-        This will be called for each batch of data
-        It will convert the list of images and captions into a single tensor
-        The captions will be tokenized and padded to the max_length 
-        The images will be stacked into a single tensor
-    """
-    def __init__(self, tokenizer, max_length=80, captions_to_use='first'):
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.captions_to_use = captions_to_use
-        
-    def __call__(self, batch):
-        images, captions, cats = zip(*batch)
-        images = torch.stack(images)
-        cats = torch.tensor(cats)
-        if self.captions_to_use == 'first':
-            captions = [caption[0] for caption in captions]
-        elif self.captions_to_use == 'random':
-            captions = [caption[random.randint(0, 4)] for caption in captions]
-        elif self.captions_to_use == 'all':
-            pass # use all captions
-        else:
-            raise ValueError("captions_to_use should be one of 'all', 'first', 'random'")
-        
-        
-        # captions are either a list of strings or a list of list of strings
-        captions_ids  = []
-        masks = []
-        if isinstance(captions[0], list): # list of list of strings               
-            # multiple captions
-            for caption_list in captions:
-                caps = [self.tokenizer(caption, padding='max_length', max_length=self.max_length, truncation=True, return_tensors="pt") for caption in caption_list]
-                captions_ids.append(torch.stack([caption['input_ids'].squeeze(0) for caption in caps]))
-                masks.append(torch.stack([caption['attention_mask'].squeeze(0) for caption in caps]))
-            captions_ids = torch.stack(captions_ids)
-            masks = torch.stack(masks)        
-        else:
-            # single caption
-            captions = self.tokenizer(captions, padding='max_length', max_length=self.max_length, truncation=True, return_tensors="pt")
-            captions_ids = captions['input_ids'].squeeze(0)
-            masks = captions['attention_mask'].squeeze(0)
-        
-        return images, captions_ids, masks, cats
-    
-    
-class Collate_fn_clip:
+   
+class Collate_fn:
     """    
         Collate class for the dataloader (to be called in the dataloader)
         This will be called for each batch of data
