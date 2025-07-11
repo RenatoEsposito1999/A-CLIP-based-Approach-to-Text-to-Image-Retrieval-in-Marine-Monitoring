@@ -102,8 +102,8 @@ class LLM():
 
 llm = LLM()
 keys_list = []
-input_file = "/workspace/text-to-image-retrivial/captioner/tmp_image_captions.csv"
-output_file = "/workspace/text-to-image-retrivial/captioner/image_captions.csv"
+input_file = "Debris.csv"
+output_file = "image_captions.csv"
 attempt = 0
 used_list = []
 with open(input_file, 'r', encoding='utf-8') as csvfile, \
@@ -138,6 +138,7 @@ with open(input_file, 'r', encoding='utf-8') as csvfile, \
             else:
                 while True:
                     if attempt < 5:
+                        print("Call to llm")
                         caption = llm.rephrase_sentence(caption, used_list=used_list)
                         attempt+=1
                         if caption not in keys_list:
