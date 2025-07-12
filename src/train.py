@@ -4,7 +4,7 @@ import numpy as np
 from collections import defaultdict
 import json
 import torch.nn.functional as F
-focus_id = [-2]
+focus_ids = [-2]
 import torch.nn.functional as F
 best_val_loss = float("inf")
 best_recall_5_focuss = -float("inf")
@@ -93,8 +93,8 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     all_cats = torch.cat(all_cats,dim=0)
     results = compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
     
-    if (results["cat_focus_R@5"] > best_recall_5_focuss):
-        best_recall_5_focuss = results["cat_focus_R@5"]
+    if (results["exact_focus_R@5"] > best_recall_5_focuss):
+        best_recall_5_focuss = results["exact_focus_R@5"]
         state = {
             'epoch': train_epoch+1,
             'state_dict': model.state_dict(),
@@ -102,7 +102,7 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
             'best_recall_5': best_recall_5_focuss
             }
         torch.save(state, f"./best_recall@5.pth")
-    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5: {results['cat_focus_R@5']}")
+    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5: {results['exact_focus_R@5']}")
     
 def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1, 5, 10], categories=None):
     global focus_ids
