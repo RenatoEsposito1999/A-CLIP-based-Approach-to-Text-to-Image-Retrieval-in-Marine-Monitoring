@@ -19,7 +19,7 @@ import json
 from torchvision import transforms as T
 
 class dataset_SPERANZA(Dataset):
-    def __init__(self, base_path, split='train', turtle_transform=None, txt_transform=None, generic_transform=None, is_val = False):
+    def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False):
         base_path = pathlib.Path(base_path)
         img_dir_COCO = base_path / "COCO"
         img_dir_turtle = base_path / "Turtle"
@@ -41,10 +41,6 @@ class dataset_SPERANZA(Dataset):
 
         self.turtle_transform = turtle_transform
         self.generic_transform = generic_transform
-        if self.generic_transform is None:
-            self.generic_transform  = T.Compose([
-                        T.Resize((224, 224)),
-                    ])
         self.txt_transform = txt_transform
         self.is_val = is_val
         
@@ -85,24 +81,24 @@ class dataset_SPERANZA(Dataset):
         self.df = pd.read_csv(annotations_debris)
         for idx,row in self.df.iterrows():
             image, caption = row
-            self.captions_debris[img_dir_turtle / image].append(caption)
-            self.captions_debris[img_dir_turtle / image].append(unique_category)
+            self.captions_debris[img_dir_debris / image].append(caption)
+            self.captions_debris[img_dir_debris / image].append(unique_category)
             unique_category += 1
         # Sea           
         self.captions_sea = defaultdict(list)
         self.df = pd.read_csv(annotations_sea)
         for idx,row in self.df.iterrows():
             image, caption = row
-            self.captions_sea[img_dir_turtle / image].append(caption)
-            self.captions_sea[img_dir_turtle / image].append(unique_category)
+            self.captions_sea[img_dir_sea / image].append(caption)
+            self.captions_sea[img_dir_sea / image].append(unique_category)
             unique_category += 1
         # Dolphin    
         self.captions_dolphine = defaultdict(list)
         self.df = pd.read_csv(annotations_dolphine)
         for idx,row in self.df.iterrows():
             image, caption = row
-            self.captions_dolphine[img_dir_turtle / image].append(caption)
-            self.captions_dolphine[img_dir_turtle / image].append(unique_category)     
+            self.captions_dolphine[img_dir_dolphin / image].append(caption)
+            self.captions_dolphine[img_dir_dolphin / image].append(unique_category)     
             unique_category += 1
         # COCO
         self.captions_COCO = defaultdict(list)
