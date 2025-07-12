@@ -36,13 +36,13 @@ class dataset_SPERANZA(Dataset):
         
         annotations_dir = base_path / "annotations"
         #annotations_flicker =  annotations_dir / "captionsFlicker.txt"
-        annotations_COCO = annotations_dir / "COCO_with_category.csv"
-        annotations_turtle = annotations_dir / "cropped_turtle.csv"
-        annotations_debris = annotations_dir / "cropped_debris.csv"
+        annotations_COCO = annotations_dir / "COCO.csv"
+        annotations_turtle = annotations_dir / "Turtle.csv"
+        annotations_debris = annotations_dir / "Debris.csv"
         #annotations_sea = annotations_dir / "cropped_sea.csv"
-        annotations_dolphine = annotations_dir / "cropped_dolphine.csv"
-        annotations_other_turtle = annotations_dir / "other_turtle.csv"
-        annotations_category = annotations_dir / "category_info.json"
+        annotations_dolphine = annotations_dir / "Dolphin.csv"
+        annotations_other_turtle = annotations_dir / "Other_turtle.csv"
+        
         
         '''if not img_dir.exists():
             raise ValueError(f"Cannot find the flickr30k_images folder in {base_path}. Make sure to download the dataset.")'''
@@ -61,7 +61,8 @@ class dataset_SPERANZA(Dataset):
         category_info ={
             "turtle": -2,
             "debris": -3,
-            "dolphin": -1
+            "dolphin": -1,
+            "sea": -4
         }
         #print(category_info)
         unique_category = 0
