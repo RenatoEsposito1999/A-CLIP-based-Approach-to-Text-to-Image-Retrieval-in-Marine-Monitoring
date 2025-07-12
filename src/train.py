@@ -4,7 +4,7 @@ import numpy as np
 from collections import defaultdict
 import json
 import torch.nn.functional as F
-focus_id = [-1,-2,-3,-4]
+focus_id = [-2]
 import torch.nn.functional as F
 best_val_loss = float("inf")
 best_recall_5_focuss = -float("inf")
@@ -92,6 +92,7 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     all_text_embs = torch.cat(all_text_embs, dim=0)
     all_cats = torch.cat(all_cats,dim=0)
     results = compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
+    
     if (results["cat_focus_R@5"] > best_recall_5_focuss):
         best_recall_5_focuss = results["cat_focus_R@5"]
         state = {
@@ -104,6 +105,7 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5: {results['cat_focus_R@5']}")
     
 def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1, 5, 10], categories=None):
+    global focus_ids
     text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
     image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
     
@@ -126,12 +128,37 @@ def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1
         results[f"cat_all_R@{k}"] = correct / n_total
         writer.add_scalar(f"cat_all_R@{k}", results[f"cat_all_R@{k}"], epoch+1)
 
+    # 2. Calcolo matching esatto solo turtle. 
+    focus_mask = torch.isin(categories, torch.tensor(focus_ids, device=categories.device))
+    focus_indices = torch.where(focus_mask)[0]  # Indici dei sample con categoria in focus_ids
+    if len(focus_indices) > 0:
+        # Calcola top-k solo per i sample focus
+        sim_focus = sim_matrix[focus_indices]  # [N_focus, N_images]
+        top_k = torch.topk(sim_focus, k=max(k_values), dim=1).indices  # [N_focus, max_k]
+        for k in k_values:
+            # Verifica matching esatto (i-esima query -> i-esima immagine)
+            correct = (top_k[:, :k] == focus_indices.unsqueeze(1)).any(dim=1).sum().item()
+            recall = correct / len(focus_indices)
+            
+            results[f"exact_focus_R@{k}"] = recall
+            writer.add_scalar(f"exact_turtle_R@{k}", recall, epoch + 1)
+    else:
+        # Se non ci sono sample focus, imposta recall a 0
+        for k in k_values:
+            print("\tWARNING: No focus indices in validation found.")
+            results[f"exact_focus_R@{k}"] = 0.0
+            writer.add_scalar(f"exact_focus_R@{k}", 0.0, epoch + 1)
     
+    return results
+
+
+    return results
+
+    '''
     # 2. Calcolo FOCUS (solo categorie specificate)
     focus_mask = torch.isin(categories, torch.tensor(focus_id, device=categories.device))
     focus_indices = torch.where(focus_mask)[0]
     n_focus = len(focus_indices)
-        
     for k in k_values:
         if n_focus > 0:
             retrieved_cats_focus = categories[top_k_indices[focus_indices, :k]]  # [N_focus, k]
@@ -141,10 +168,11 @@ def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1
         else:
             results[f"cat_focus_R@{k}"] = 0.0
         writer.add_scalar(f"cat_focus_R@{k}", results[f"cat_focus_R@{k}"], epoch+1)
-    return results
+        '''
 
 
-def compute_metrics_cpu(writer, text_embeddings, image_embeddings, epoch, k_values=[1, 5, 10], categories=None):
+
+'''def compute_metrics_cpu(writer, text_embeddings, image_embeddings, epoch, k_values=[1, 5, 10], categories=None):
     text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
     image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
 
@@ -183,3 +211,4 @@ def compute_metrics_cpu(writer, text_embeddings, image_embeddings, epoch, k_valu
             results[f"cat_focus_R@{k}"] = 0.0
         writer.add_scalar(f"cat_focus_R@{k}", results[f"cat_focus_R@{k}"], epoch+1)
     return results
+'''
