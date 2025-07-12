@@ -18,9 +18,6 @@ from utils.telegram_notification import send_telegram_notification
 from utils.get_optimizer_and_scheduler import get_optimizer_and_scheduler
 from utils.version_log_tensorboard import get_next_version
 
-generic_ransform = T.Compose([
-        T.Resize((224, 224)),
-    ])
 
 
 def main(batch_size, lr, device, wd, n_epochs):
@@ -43,15 +40,9 @@ def main(batch_size, lr, device, wd, n_epochs):
     
     print("Train dataset")
     print("-"*15)
-    #train_dataset = Custom_dataset('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
-    #train_dataset = Custom_dataset_category_only_turtle('./datasets/', split='train', turtle_transform=train_heavy_transform, generic_transform= generic_ransform)
-    #TODO train_dataset = Custom_dataset_augmented("./NEW_DATASET", split="train", model=name_model)
     train_dataset = dataset_SPERANZA("./datasets/", split="train")
     print("-"*15)
     print("Validation dataset")
-    #val_dataset = Custom_dataset('./datasets/', split='val', is_val=True)
-    #val_dataset = Custom_dataset_category_only_turtle('./datasets/', split='val', is_val=True)
-    #TODO val_dataset = Custom_dataset_augmented("./NEW_DATASET", split="val", model=name_model)
     val_dataset = dataset_SPERANZA("./datasets/", split="val")
     print("-"*15)
 
@@ -76,7 +67,7 @@ def main(batch_size, lr, device, wd, n_epochs):
     
     print("Start training")
     optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
-    send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
     train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
     send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
     writer.close()
