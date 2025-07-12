@@ -106,7 +106,7 @@ TURTLE_OTHER
 *.err
 *.out
 *.pth
-utils/TOKEN.py
+utils/token.py
 Debris/
 Dolphin/
 Sea/
