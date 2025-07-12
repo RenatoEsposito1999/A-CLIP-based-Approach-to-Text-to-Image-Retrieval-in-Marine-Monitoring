@@ -10,8 +10,8 @@ This script is used in order generate captions by using blip and save into a csv
 WARNING: can generate same captions, so after this you need to execute paraphraser.py
 Use count different captions.py to validate the dataset. 
 '''
-output_csv = "Debris.csv"
-input_folder = "/workspace/text-to-image-retrivial/datasets/Debris"  # Sostituisci con il tuo percorso
+output_csv = "Dolphin.csv"
+input_folder = "/workspace/text-to-image-retrivial/datasets/Dolphin"  # Sostituisci con il tuo percorso
 device = "cuda"
 model_name = "Salesforce/blip-image-captioning-large"
 processor = BlipProcessor.from_pretrained(model_name, use_fast=True)

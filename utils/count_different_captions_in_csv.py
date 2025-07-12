@@ -14,7 +14,7 @@ This script is used to count how many captions in a given csv are equal, ex:
 
 '''
 # Read the CSV data into a pandas DataFrame
-df = pd.read_csv("/workspace/text-to-image-retrivial/utils/definitivo.csv")
+df = pd.read_csv("./image_captions.csv")
 
 # Calculate the frequency of each caption
 caption_counts = df['caption'].value_counts()

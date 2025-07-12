@@ -102,7 +102,7 @@ class LLM():
 
 llm = LLM()
 keys_list = []
-input_file = "Debris.csv"
+input_file = "Dolphin.csv"
 output_file = "image_captions.csv"
 attempt = 0
 used_list = []
