@@ -23,12 +23,11 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
             masks = masks.to(device)
             cats = cats.to(device)
             img_embs,text_embs, logit_scale=model(images,captions,masks)
-            #TODO Ritorna 3 losss, scriverle su tensoboard 
             loss, uniloss, contrastiveloss = loss_fn(img_embs, text_embs, cats, logit_scale)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-        
+
             total_loss += loss.item()
             total_uni += uniloss.item()
             total_contrastive += contrastiveloss.item()
@@ -59,6 +58,8 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     model.eval()
     all_img_embs, all_text_embs, all_cats = [], [],[]
     total_loss = 0
+    total_uni = 0 
+    total_contrastive = 0
     with torch.no_grad():
         for batch in dataloader:
             images, captions, masks, cats = batch
@@ -70,9 +71,14 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
             all_img_embs.append(img_embs)
             all_text_embs.append(text_embs)
             all_cats.append(cats)
-            loss = loss_fn(text_embs,img_embs,cats, logit_scale)
+            loss, uniloss, contrastiveloss = loss_fn(text_embs,img_embs,cats, logit_scale)
             total_loss += loss.item()
+            total_uni += uniloss.item()
+            total_contrastive += contrastiveloss.item()
     writer.add_scalar("Val_Loss", total_loss / len(dataloader), train_epoch+1)
+    writer.add_scalar("Uni Loss Validation", total_uni / len(dataloader), train_epoch+1)
+    writer.add_scalar("Contrastive loss Validation", contrastiveloss / len(dataloader), train_epoch+1)
+
     
     if (total_loss/len(dataloader)) < best_val_loss:
         best_val_loss = total_loss/len(dataloader)
