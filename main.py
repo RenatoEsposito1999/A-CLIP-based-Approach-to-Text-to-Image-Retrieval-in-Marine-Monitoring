@@ -7,13 +7,13 @@ from torchvision import transforms as T
 from transformers import AutoProcessor
 from src.sampler import NonRepeatingBalancedSampler
 from src.new_dataset import Custom_dataset_augmented
-from src.DATASET_PROVA import dataset_SPERANZA, Collate_fn
+from src.DATASET import dataset_SPERANZA, Collate_fn
 from src.model import CLIP_model
 #from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_clip
 from src.loss import compute_loss
 from src.train import train
 from utils.seed import seed_everything
-from utils.TOKEN import CHAT_ID_RENATO, CHAT_ID_VINCENZO
+from utils.token import CHAT_ID_RENATO, CHAT_ID_VINCENZO
 from utils.telegram_notification import send_telegram_notification
 from utils.get_optimizer_and_scheduler import get_optimizer_and_scheduler
 from utils.version_log_tensorboard import get_next_version
@@ -24,9 +24,8 @@ generic_ransform = T.Compose([
 
 
 def main(batch_size, lr, device, wd, n_epochs):
-    # Cartella base per i log (es: "logs/NanoCLIP")
     seed_everything(12345)
-    log_base_dir = "logs/NanoCLIP"
+    log_base_dir = "logs/CLIP"
     next_version = get_next_version(log_base_dir)
     log_dir = os.path.join(log_base_dir, f"version_{next_version}")
     writer = SummaryWriter(log_dir=log_dir)  # Sostituisci "experiment_name" con un 
