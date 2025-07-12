@@ -14,12 +14,12 @@ def build_target_matrix(flags):
             Target matrix where target[i,j] = 1 if flags[i] == flags[j], 0 otherwise.
         """
         #print(flags)
-        number_categories = defaultdict(int)
-        '''for x in flags.tolist():
+        '''number_categories = defaultdict(int)
+        for x in flags.tolist():
             if x < 0:
                 number_categories[x] += 1
-        print(number_categories)
-        print("BATCH SIZE: ", len(flags.tolist()))'''
+        print(number_categories)'''
+        #print("BATCH SIZE: ", len(flags.tolist()))
         
         # Espande i flags per confronto tra tutti gli elementi
         flags_expanded_row = flags.unsqueeze(1)
