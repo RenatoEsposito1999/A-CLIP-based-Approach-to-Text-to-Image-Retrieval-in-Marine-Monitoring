@@ -20,7 +20,7 @@ def create_turtle_csv(LLM=None):
         if not mantain_templating and LLM:
             sentence = LLM.rephrase_sentence(sentence=sentence)
                 
-        writer_turtle.writerow({"image_name": f"cropped_{file_name}", "caption": sentence})
+        writer_turtle.writerow({"image_name": f"{file_name}", "caption": sentence})
     turtle_file.close()
     
 def main():

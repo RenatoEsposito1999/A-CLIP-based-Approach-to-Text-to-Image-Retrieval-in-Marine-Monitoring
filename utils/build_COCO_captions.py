@@ -6,8 +6,8 @@ import os
 
 COCO_CSV_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/COCO_with_category.csv"
 COCO_DATASET_PATH = "/workspace/text-to-image-retrivial/datasets/COCO/"
-CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/text-to-image-retrivial/zip_folders/annotations/captions_val2014.json"
-COCO_ISTANCES_VAL_PATH = "/workspace/text-to-image-retrivial/zip_folders/annotations/instances_val2014.json"
+CAPTIONS_ANNOTATIONS_COCO_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/captions_val2014.json"
+COCO_ISTANCES_VAL_PATH = "/workspace/text-to-image-retrivial/datasets/annotations/instances_val2014.json"
 
 
 CAPTIONS_COCO = COCO(CAPTIONS_ANNOTATIONS_COCO_PATH)        
