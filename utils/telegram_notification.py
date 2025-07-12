@@ -1,5 +1,5 @@
 import requests
-from TOKEN import TOKEN as tk
+from utils.token import TOKEN as tk
 CHAT_ID_VINCENZO = "521260346"
 CHAT_ID_RENATO = "407888332"
 def send_telegram_notification(message, CHAT_ID: list):
