@@ -22,13 +22,16 @@ from utils.version_log_tensorboard import get_next_version
 
 def main(batch_size, lr, device, wd, n_epochs):
     seed_everything(12345)
+    
+    #PREPARING TENSOBOARD
     log_base_dir = "logs/CLIP"
     next_version = get_next_version(log_base_dir)
     log_dir = os.path.join(log_base_dir, f"version_{next_version}")
-    writer = SummaryWriter(log_dir=log_dir)  # Sostituisci "experiment_name" con un 
+    writer = SummaryWriter(log_dir=log_dir)   
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
+    #DEFINE THE MODEL CLIP
     model = CLIP_model()
     processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
     collate_fn = Collate_fn(processor=processor)
