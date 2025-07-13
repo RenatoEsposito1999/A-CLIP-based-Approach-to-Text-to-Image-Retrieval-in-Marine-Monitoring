@@ -4,10 +4,12 @@ import numpy as np
 from collections import defaultdict
 import json
 import torch.nn.functional as F
-focus_ids = [-2]
+
 import torch.nn.functional as F
 best_val_loss = float("inf")
 best_recall_5_focuss = -float("inf")
+best_recall_5_all = -float("inf")
+focus_ids = [-2]
 
 def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, writer, val_dataloader):
     model = model.to(device)
@@ -54,7 +56,7 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
         validation(dataloader=val_dataloader, model=model, loss_fn=loss_fn,writer=writer, train_epoch=epoch, device=device)
 
 def validation(dataloader, model,loss_fn, writer, train_epoch, device):
-    global best_val_loss, best_recall_5_focuss
+    global best_val_loss, best_recall_5_focuss, best_recall_5_all
     model.eval()
     all_img_embs, all_text_embs, all_cats = [], [],[]
     total_loss = 0
@@ -101,8 +103,19 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
             'val_loss': total_loss/len(dataloader),
             'best_recall_5': best_recall_5_focuss
             }
-        torch.save(state, f"./best_recall@5.pth")
-    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5: {results['exact_focus_R@5']}")
+        torch.save(state, f"./best_recall@5_focus.pth")
+    
+    if (results["cat_all_R@5"] > best_recall_5_all):
+        best_recall_5_all = results["cat_all_R@5"]
+        state = {
+            'epoch': train_epoch+1,
+            'state_dict': model.state_dict(),
+            'val_loss': total_loss/len(dataloader),
+            'best_recall_5': best_recall_5_all
+            }
+        torch.save(state, f"./best_recall@5_all.pth")
+    
+    print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5_turtle: {results['exact_focus_R@5']}, RECALL@5_all: {results['cat_all_R@5']}")
     
 def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1, 5, 10], categories=None):
     global focus_ids
