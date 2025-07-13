@@ -73,7 +73,7 @@ class NonRepeatingBalancedSampler(Sampler):
         np.random.shuffle(coco_indices)
         selected = []
         
-        #This for is only for debug to visualize how much COCO is remaining
+        #This for is only for debug to visualize how much coco is remaining
         for idx in coco_indices:
             if idx not in self.used_indices:
                 remaining += 1
