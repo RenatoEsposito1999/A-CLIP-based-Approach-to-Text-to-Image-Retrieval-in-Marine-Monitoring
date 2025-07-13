@@ -13,6 +13,8 @@ def build_target_matrix(flags):
         Returns:
             Target matrix where target[i,j] = 1 if flags[i] == flags[j], 0 otherwise.
         """
+        
+        
         #print(flags)
         '''number_categories = defaultdict(int)
         for x in flags.tolist():
@@ -21,17 +23,13 @@ def build_target_matrix(flags):
         print(number_categories)'''
         #print("BATCH SIZE: ", len(flags.tolist()))
         
-        # Espande i flags per confronto tra tutti gli elementi
+       
         flags_expanded_row = flags.unsqueeze(1)
         flags_expanded_col = flags.unsqueeze(0)
        
         
-        # Crea la matrice di similarità (1 se stessa classe, 0 altrimenti)
+        # Create the matrix target where the corresponding entry with the same category is putted 1 otherwise 0
         target = (flags_expanded_row == flags_expanded_col).float()
-        
-      
-        # Imposta a 0 gli elementi sulla diagonale (non confrontiamo un esempio con se stesso)
-        #target.fill_diagonal_(0)
         return target
 
 def UniLoss(image_embedding, text_embedding, cats, temperature=None):
@@ -54,22 +52,24 @@ def UniLoss(image_embedding, text_embedding, cats, temperature=None):
         temperature = 0.07
     labels = build_target_matrix(cats)   
     #DECOMMENT THE LINES ABOVE FOR CHECKING IF THE TEXT AND IMAGE ARE NORMALIZED 
-    '''# Calcola le norme L2 per ogni embedding nel batch (lungo l'asse D)
+    '''# Calculate L2 norms for each embedding in the batch (along dimension D)
     text_norms = torch.norm(text_embedding, p=2, dim=1)  # shape: (B,)
     image_norms = torch.norm(image_embedding, p=2, dim=1)
-    # Verifica se tutti sono normalizzati (con tolleranza numerica)
+    # Check if all embeddings are normalized (with numerical tolerance) 
     print("Text embeddings normalizzati?", torch.allclose(text_norms, torch.ones_like(text_norms), rtol=1e-3))
     print("Image embeddings normalizzati?", torch.allclose(image_norms, torch.ones_like(image_norms), rtol=1e-3))
-    exit()'''
+    '''
     positive_mask = (labels > 0).float()
     #FOR IMAGE TO TEXT
     logits_i2t = torch.matmul(image_embedding, text_embedding.T) / temperature
     log_prob_i2t = F.log_softmax(logits_i2t, dim=1)
+    #In the paper also called soft-crossentropy
     per_instance_loss_i2t = - (log_prob_i2t * positive_mask).sum(dim=1) / torch.clamp(positive_mask.sum(dim=1), min=1.0)
     
     #FOR TEXT TO IMAGE
     logits_t2i = torch.matmul(text_embedding,image_embedding.T) / temperature
     log_prob_t2i = F.log_softmax(logits_t2i, dim=1)
+    #In the paper also called soft-crossentropy
     per_instance_loss_t2i = - (log_prob_t2i * positive_mask).sum(dim=1) / torch.clamp(positive_mask.sum(dim=1), min=1.0)
     
     loss = (per_instance_loss_i2t.mean() + per_instance_loss_t2i.mean()) / 2

@@ -1,11 +1,3 @@
-# ----------------------------------------------------------------------------
-# Copyright (c) 2024 Amar Ali-bey
-#
-# OpenVPRLab: https://github.com/amaralibey/nanoCLIP
-#
-# Licensed under the MIT License. See LICENSE file in the project root.
-# ----------------------------------------------------------------------------
-
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
@@ -21,6 +13,7 @@ from torchvision import transforms as T
 class dataset_SPERANZA(Dataset):
     def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False):
         base_path = pathlib.Path(base_path)
+        #INITIALIZE VARIABLES FOR PATH TO THE IMAGES
         img_dir_COCO = base_path / "COCO"
         img_dir_turtle = base_path / "Turtle"
         img_dir_other_turtle = base_path / "Turtle_other"
@@ -29,7 +22,7 @@ class dataset_SPERANZA(Dataset):
         img_dir_sea = base_path / "Sea"
 
 
-
+        #INITIALIZE VARIABLES FOR PATH TO THE ANNOTATIONS
         annotations_dir = base_path / "annotations"
         annotations_COCO = annotations_dir / "COCO.csv"
         annotations_turtle = annotations_dir / "Turtle.csv"
@@ -38,13 +31,14 @@ class dataset_SPERANZA(Dataset):
         annotations_dolphine = annotations_dir / "Dolphin.csv"
         annotations_other_turtle = annotations_dir / "Other_turtle.csv"
         
-
+        #INITIALIZE THE TRANSFORM
         self.turtle_transform = turtle_transform
         self.generic_transform = generic_transform
         self.txt_transform = txt_transform
         self.is_val = is_val
         
         self.split = split
+        
         category_info ={
             "turtle": -2,
             #"debris": -3,
@@ -54,15 +48,9 @@ class dataset_SPERANZA(Dataset):
         #print(category_info)
         unique_category = 0
         
-        #for each dataset, create e dictionaty, where the key is the path of the image and value is the aption associated to that image
-
-
-        
-        #
+        #for each list images dataset, create e dictionary, where the key is the path of the image and value is the aption associated to that image
+        #{key: "path_image", value: [caption, category]}
         self.captions_turtle = defaultdict(list)
-        '''
-        {key: "path_image", value: [caption, category]}
-        '''
         # Turtle
         self.df = pd.read_csv(annotations_turtle)
         for idx,row in self.df.iterrows():
@@ -75,7 +63,6 @@ class dataset_SPERANZA(Dataset):
             image, caption = row
             self.captions_turtle[img_dir_other_turtle / image].append(caption)
             self.captions_turtle[img_dir_other_turtle / image].append(-2)
-        
         # Debris          
         self.captions_debris = defaultdict(list)
         self.df = pd.read_csv(annotations_debris)
@@ -146,54 +133,28 @@ class dataset_SPERANZA(Dataset):
         else: # use all images
             pass
         
-        #SE VUOI FARE QUALCHE TEST CON POCHE IMMAGINI DECOMMENTA QUELLO CHE C'è SOTTO
-        # split the dataset
-        '''if split == 'train':
-            #self.imgs_flickr30 = self.imgs_flickr30[: int(0.1 * len(self.imgs_flickr30))]
-            self.imgs_turtle = self.imgs_turtle[: int(0.01 * len(self.imgs_turtle))]
-            self.imgs_debris = self.imgs_debris[: int(0.01 * len(self.imgs_debris))]
-            self.imgs_sea = self.imgs_sea[: int(0.01 * len(self.imgs_sea))]
-            self.imgs_dolphine = self.imgs_dolphine[: int(0.01 * len(self.imgs_dolphine))]
-            self.imgs_COCO = self.imgs_COCO[: int(0.01 * len(self.imgs_COCO))]
-        elif split == 'val':
-            self.imgs_turtle = self.imgs_turtle[int(0.1 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
-            #self.imgs_turtle = random.sample(self.imgs_turtle, 300)
-            self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
-            self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
-            self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
-            self.imgs_COCO = self.imgs_COCO[int(0.8 * len(self.imgs_COCO)) : int(0.9 * len(self.imgs_COCO))]
-        elif split == "test":
-            # mantieni il test originale o riduci anche qui se vuoi
-            #self.imgs_flickr30 = self.imgs_flickr30[int(0.9 * len(self.imgs_flickr30)) : ]
-            self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
-            self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
-            self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
-            self.imgs_dolphine = self.imgs_dolphine[int(0.9 * len(self.imgs_dolphine)) : ]
-            self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs_COCO)) : ]
-        else: # use all images
-            pass'''
-        
+
         print("turtle: ", len(self.imgs_turtle))
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
         print("dolphine: ",len(self.imgs_dolphine))
         print("coco", len(self.imgs_COCO))
         
-
+        #Create a unique list of keys
         self.imgs = self.imgs_COCO + self.imgs_turtle + self.imgs_debris + self.imgs_dolphine 
-        #self.imgs = self.imgs_COCO + self.imgs_turtle 
-        #self.imgs = self.imgs_turtle + self.imgs_sea + self.imgs_debris + self.imgs_dolphine + self.imgs_COCO
         random.shuffle(self.imgs)
-        #self.captions = self.captions_COCO | self.captions_turtle
+        #Create a unique dictionary of captions
         self.captions = self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
-
+  
     def __len__(self):
         return len(self.imgs)
     
     def __getitem__(self, index):
-        img_name = self.imgs[index]
-        img = Image.open(img_name).convert('RGB')
+        img_name = self.imgs[index] #Pick the i image
+        img = Image.open(img_name).convert('RGB') #Open the image
+        
+        #Apply some transformation
         if self.is_val:
             img = self.generic_transform(img)
         else:
@@ -204,9 +165,9 @@ class dataset_SPERANZA(Dataset):
             
         '''if self.img_transform:
             img = self.img_transform(img)'''
-        captions = self.captions[img_name][0]
+        captions = self.captions[img_name][0]  #Pick the caption
      
-        category = self.captions[img_name][1]
+        category = self.captions[img_name][1] #Pick the category
         if self.txt_transform:
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, category
