@@ -14,7 +14,7 @@ CAPTIONS_COCO = COCO(CAPTIONS_ANNOTATIONS_COCO_PATH)
 INSTANCES_COCO = COCO(COCO_ISTANCES_VAL_PATH) 
 
 def COCO_get_caption_and_category(img_name):
-    #Trova l'immagine corrispondente
+    #Found the corresponding image and get the caption with category
     for idx in CAPTIONS_COCO.imgs:
         if CAPTIONS_COCO.imgs[idx]["file_name"] == img_name:
             img_id = CAPTIONS_COCO.imgs[idx]["id"]
@@ -41,7 +41,6 @@ def COCO_create_csv():
     writer_coco = csv.DictWriter(coco_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
     writer_coco.writeheader()        
     for file_name in os.listdir(COCO_DATASET_PATH):
-        # Ottieni la lista di caption e la categoria
         sentence, category = COCO_get_caption_and_category(file_name)
         if not category == "empty":
             sentence = sentence.replace("\n", "")
