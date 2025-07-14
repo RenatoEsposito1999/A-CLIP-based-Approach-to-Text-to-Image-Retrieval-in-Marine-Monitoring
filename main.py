@@ -12,6 +12,7 @@ from src.model import CLIP_model
 #from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_clip
 from src.loss import compute_loss
 from src.train import train
+from src.tester import Tester
 from utils.seed import seed_everything
 from utils.token import CHAT_ID_RENATO, CHAT_ID_VINCENZO
 from utils.telegram_notification import send_telegram_notification
@@ -48,9 +49,14 @@ def main(batch_size, lr, device, wd, n_epochs):
     print("Validation dataset")
     val_dataset = dataset_SPERANZA("./datasets/", split="val")
     print("-"*15)
+    print("Test dataset")
+    test_dataset = dataset_SPERANZA("./datasets/", split="test")
+    print("-"*15)
+
 
     train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
     val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
+    test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
     
     train_dataloader = DataLoader(
         train_dataset, 
@@ -68,11 +74,22 @@ def main(batch_size, lr, device, wd, n_epochs):
         collate_fn=collate_fn
     )
     
+    test_dataloader = DataLoader(
+                        test_dataset, 
+                        batch_sampler = test_sampler,
+                        num_workers=4, 
+                        pin_memory=True,
+                        collate_fn=collate_fn
+                    )
+    
     print("Start training")
     optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
     #send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
-    train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
-    send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+    #train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+    
+    #send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+    tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device)
+    tester.test()
     writer.close()
 
 if __name__ == "__main__":
