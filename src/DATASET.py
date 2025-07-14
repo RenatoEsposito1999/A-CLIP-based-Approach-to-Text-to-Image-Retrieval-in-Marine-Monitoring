@@ -126,9 +126,9 @@ class dataset_SPERANZA(Dataset):
             self.imgs_COCO = self.imgs_COCO[int(0.5 * len(self.imgs_COCO)) : int(0.65 * len(self.imgs_COCO))] # 16k
         elif split == "test":
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
-            '''self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
+            self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
             self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
-            self.imgs_dolphine = self.imgs_dolphine[int(0.9 * len(self.imgs_dolphine)) : ]'''
+            self.imgs_dolphine = self.imgs_dolphine[int(0.9 * len(self.imgs_dolphine)) : ]
             self.imgs_COCO = self.imgs_COCO[int(0.9 * len(self.imgs_COCO)) : ]
         else: # use all images
             pass
