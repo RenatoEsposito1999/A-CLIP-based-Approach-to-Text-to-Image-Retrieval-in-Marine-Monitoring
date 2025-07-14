@@ -6,10 +6,8 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
 from transformers import AutoProcessor
 from src.sampler import NonRepeatingBalancedSampler
-from src.new_dataset import Custom_dataset_augmented
-from src.DATASET import dataset_SPERANZA, Collate_fn
+from src.dataset import dataset, collate_fn
 from src.model import CLIP_model
-#from src.dataset_category_only_turtle import Custom_dataset_category_only_turtle, Collate_fn_clip
 from src.loss import compute_loss
 from src.train import train
 from src.tester import Tester
@@ -35,7 +33,7 @@ def main(batch_size, lr, device, wd, n_epochs):
     #DEFINE THE MODEL CLIP
     model = CLIP_model()
     processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
-    collate_fn = Collate_fn(processor=processor)
+    collate_fn = collate_fn(processor=processor)
 
     # print numbers of params of the model     
     total_params = sum(p.numel() for p in model.parameters())    
@@ -44,13 +42,13 @@ def main(batch_size, lr, device, wd, n_epochs):
     
     print("Train dataset")
     print("-"*15)
-    train_dataset = dataset_SPERANZA("./datasets/", split="train")
+    train_dataset = dataset("./datasets/", split="train")
     print("-"*15)
     print("Validation dataset")
-    val_dataset = dataset_SPERANZA("./datasets/", split="val")
+    val_dataset = dataset("./datasets/", split="val")
     print("-"*15)
     print("Test dataset")
-    test_dataset = dataset_SPERANZA("./datasets/", split="test")
+    test_dataset = dataset("./datasets/", split="test")
     print("-"*15)
 
 
