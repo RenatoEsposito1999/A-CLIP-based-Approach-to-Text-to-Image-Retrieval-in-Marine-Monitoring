@@ -10,7 +10,7 @@ import pandas as pd
 import json
 from torchvision import transforms as T
 
-class dataset_SPERANZA(Dataset):
+class dataset(Dataset):
     def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False):
         base_path = pathlib.Path(base_path)
         #INITIALIZE VARIABLES FOR PATH TO THE IMAGES
@@ -172,7 +172,6 @@ class dataset_SPERANZA(Dataset):
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, category
    
-class Collate_fn:
     """    
         Collate class for the dataloader (to be called in the dataloader)
         This will be called for each batch of data
