@@ -8,11 +8,11 @@ def send_telegram_notification(message, CHAT_ID: list):
         payload = {
             "chat_id": id,
             "text": f"{message}",
-            "parse_mode": "HTML"  # Opzionale: supporta markup HTML
+            "parse_mode": "HTML"  
         }
         try:
             response = requests.post(url, json=payload)
-            response.raise_for_status()  # Verifica errori HTTP
+            response.raise_for_status()
             print("Notifica inviata con successo!")
         except requests.exceptions.RequestException as e:
             print(f"Errore nell'invio: {e}")

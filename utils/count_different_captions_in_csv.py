@@ -24,7 +24,7 @@ print(caption_counts.sum())
 caption_counts_dict = caption_counts.to_dict()
 
 # Print the dictionary
-# Salva il dizionario in un file JSON
+# Save dictionary into JSON file
 output_json_file = "caption_counts.json"
 with open(output_json_file, 'w', encoding='utf-8') as f:
     json.dump(caption_counts_dict, f, ensure_ascii=False, indent=4)

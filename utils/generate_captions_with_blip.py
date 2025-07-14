@@ -18,7 +18,6 @@ processor = BlipProcessor.from_pretrained(model_name, use_fast=True)
 model = BlipForConditionalGeneration.from_pretrained(model_name).to(device)
  
 def process_images_batch(image_paths, batch_size=256):
-    """Processa immagini in batch per ottimizzare l'uso della GPU"""
     results = []
     
     for i in tqdm(range(0, len(image_paths), batch_size), desc="Processing images"):
@@ -28,14 +27,14 @@ def process_images_batch(image_paths, batch_size=256):
         # Preprocess batch
         inputs = processor(images, return_tensors="pt", padding=True).to(device)
         
-        # Genera caption
+        # Generate caption for each image inside the batch
         with torch.no_grad():
             outputs = model.generate(**inputs, max_length=20)
         
-        # Decodifica risultati
+        # Decode the results tensor to string
         captions = processor.batch_decode(outputs, skip_special_tokens=True)
         
-        # Salva risultati
+        # Prepare dictionary with results
         for img_path, caption in zip(batch_paths, captions):
             results.append({
                 "image_name": os.path.basename(img_path),
@@ -46,7 +45,7 @@ def process_images_batch(image_paths, batch_size=256):
  
 # Main execution
 if __name__ == "__main__":
-    # Prendi tutti i file immagine dalla cartella
+    #Pick all extensions of images
     image_extensions = [".jpg", ".jpeg", ".png", ".webp"]
     image_paths = [
         os.path.join(input_folder, f)
@@ -54,12 +53,12 @@ if __name__ == "__main__":
         if os.path.splitext(f)[1].lower() in image_extensions
     ]
     
-    print(f"Trovate {len(image_paths)} immagini da processare")
+    print(f"Found {len(image_paths)} images to process")
     
-    # Processa e salva i risultati
+    #Process and return the results
     results = process_images_batch(image_paths)
     
-    # Scrivi CSV
+    #Write the results inside the csv
     with open(output_csv, "w", newline="", encoding="utf-8") as csvfile:
         fieldnames = ["image_name", "caption"]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
@@ -67,7 +66,7 @@ if __name__ == "__main__":
         writer.writeheader()
         writer.writerows(results)
     
-    print(f"Fatto! Risultati salvati in {output_csv}")
+    print(f"Done! Results saved inside {output_csv}")
  
  
  

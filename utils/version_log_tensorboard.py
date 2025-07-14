@@ -1,7 +1,9 @@
 import os
 def get_next_version(log_dir: str) -> int:
-    """Trova il prossimo numero di versione disponibile."""
-    os.makedirs(log_dir, exist_ok=True)  # Crea la cartella se non esiste
+    """
+        This functions create a new folder with increase number of version insider the log directory
+    """
+    os.makedirs(log_dir, exist_ok=True) 
     existing_versions = []
     
     for d in os.listdir(log_dir):
@@ -10,6 +12,6 @@ def get_next_version(log_dir: str) -> int:
                 num = int(d.split("_")[1])
                 existing_versions.append(num)
             except ValueError:
-                continue  # Ignora cartelle con formato non valido
+                continue 
     
     return max(existing_versions) + 1 if existing_versions else 0
