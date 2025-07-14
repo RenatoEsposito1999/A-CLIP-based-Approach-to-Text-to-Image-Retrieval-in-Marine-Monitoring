@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms as T
 from transformers import AutoProcessor
 from src.sampler import NonRepeatingBalancedSampler
-from src.dataset import dataset, collate_fn
+from src.dataset import dataset, Collate_fn
 from src.model import CLIP_model
 from src.loss import compute_loss
 from src.train import train
@@ -19,7 +19,7 @@ from utils.version_log_tensorboard import get_next_version
 
 
 
-def main(batch_size, lr, device, wd, n_epochs):
+def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
     seed_everything(12345)
     
     #PREPARING TENSOBOARD
@@ -33,62 +33,66 @@ def main(batch_size, lr, device, wd, n_epochs):
     #DEFINE THE MODEL CLIP
     model = CLIP_model()
     processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
-    collate_fn = collate_fn(processor=processor)
+    collate_fn = Collate_fn(processor=processor)
 
-    # print numbers of params of the model     
-    total_params = sum(p.numel() for p in model.parameters())    
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
     
-    print("Train dataset")
-    print("-"*15)
-    train_dataset = dataset("./datasets/", split="train")
-    print("-"*15)
-    print("Validation dataset")
-    val_dataset = dataset("./datasets/", split="val")
-    print("-"*15)
-    print("Test dataset")
-    test_dataset = dataset("./datasets/", split="test")
-    print("-"*15)
 
+    if not no_train:
+        # print numbers of params of the model     
+        total_params = sum(p.numel() for p in model.parameters())    
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
 
-    train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
-    val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
-    test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
-    
-    train_dataloader = DataLoader(
-        train_dataset, 
-        batch_sampler = train_sampler, 
-        num_workers=4, 
-        pin_memory=True, 
-        collate_fn=collate_fn 
-    )
-    val_dataloader = DataLoader(
-        val_dataset, 
+        print("Train dataset")
+        print("-"*15)
+        train_dataset = dataset("./datasets/", split="train")
+        print("-"*15)
+        print("Validation dataset")
+        val_dataset = dataset("./datasets/", split="val")
+        print("-"*15)
 
-        batch_sampler = val_sampler,
-        num_workers=4, 
-        pin_memory=True,
-        collate_fn=collate_fn
-    )
-    
-    test_dataloader = DataLoader(
-                        test_dataset, 
-                        batch_sampler = test_sampler,
-                        num_workers=4, 
-                        pin_memory=True,
-                        collate_fn=collate_fn
-                    )
-    
-    print("Start training")
-    optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
-    #send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
-    #train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
-    
-    #send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
-    tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device)
-    tester.test()
+        train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
+        val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
+        train_dataloader = DataLoader(
+                            train_dataset, 
+                            batch_sampler = train_sampler, 
+                            num_workers=4, 
+                            pin_memory=True, 
+                            collate_fn=collate_fn 
+                        )
+        val_dataloader = DataLoader(
+                            val_dataset,
+                            batch_sampler = val_sampler,
+                            num_workers=4, 
+                            pin_memory=True,
+                            collate_fn=collate_fn
+                        )
+        
+        print("Start training")
+        optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
+        send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+        train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+        send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+
+    if test:
+        print("Test dataset")
+        test_dataset = dataset("./datasets/", split="test")
+        print("-"*15)
+        test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
+        test_dataloader = DataLoader(
+                            test_dataset, 
+                            batch_sampler = test_sampler,
+                            num_workers=4, 
+                            pin_memory=True,
+                            collate_fn=collate_fn
+                        )
+        
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device)
+        tester.test()
+
     writer.close()
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train parameters")
@@ -99,7 +103,10 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
     parser.add_argument("--n_epochs", type=int, default=50, help="number of epoch")
+    parser.add_argument("--no_train", type=bool, default=False, help="number of epoch")
+    parser.add_argument("--test", type=bool, default=True, help="number of epoch")
+
 
     args = parser.parse_args()
     
-    main(batch_size=args.bs, lr=args.lr, device= args.device, wd = args.wd, n_epochs=args.n_epochs)
+    main(batch_size=args.bs, lr=args.lr, device= args.device, wd = args.wd, n_epochs=args.n_epochs, no_train=args.no_train, test=args.test)
