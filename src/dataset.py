@@ -172,6 +172,7 @@ class dataset(Dataset):
             captions = [self.txt_transform(caption) for caption in captions]
         return img, captions, category
    
+class Collate_fn:
     """    
         Collate class for the dataloader (to be called in the dataloader)
         This will be called for each batch of data
