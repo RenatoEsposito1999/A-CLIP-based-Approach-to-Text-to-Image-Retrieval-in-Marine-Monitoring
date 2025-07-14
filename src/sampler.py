@@ -3,17 +3,34 @@ import numpy as np
 from torch.utils.data.sampler import Sampler
 from collections import defaultdict
 from tqdm import tqdm
-'''
-    This Sampler creates balanced batch for computing correctly the UniLoss, and guarantee to have same number
-    of samples of the same category inside a batch, without repetation.
-    For example:
-    fixed_categories=[-2]
-    samples_per_fixed = 64
-    batch_size = 256
-    So each batch is composed by 64 samples of category -2 and the remaining by coco (in this example 256 - 64= 192)
-'''
+
 class NonRepeatingBalancedSampler(Sampler):
+    """
+        A PyTorch Sampler that creates balanced batches for UniLoss computation.
+        
+        Ensures:
+        - Fixed number of samples per specified category in each batch
+        - No sample repetition across epochs
+        - Automatic filling with COCO samples when fixed categories are exhausted
+        
+        Typical Usage:
+            For creating batches with 64 turtle samples (-2) and 192 COCO samples:
+            >>> sampler = NonRepeatingBalancedSampler(dataset, 
+            ...                                     fixed_categories=[-2],
+            ...                                     samples_per_fixed=64,
+            ...                                     batch_size=256)
+    """
     def __init__(self, dataset, fixed_categories=[-1, -2, -3, -4], samples_per_fixed=64, batch_size=256, drop_last=False):
+        """
+            Initialize the balanced sampler.
+            
+            Args:
+                dataset: Target dataset with categories
+                fixed_categories: Special categories to balance (default negative IDs)
+                samples_per_fixed: Samples per special category per batch
+                batch_size: Total batch size (must be >= samples_per_fixed * len(fixed_categories))
+                drop_last: Whether to drop incomplete batches
+        """
         self.dataset = dataset
         self.samples_per_fixed = samples_per_fixed #How much sample you want for the categories specified into fixed_categories
         self.coco_samples = batch_size - (samples_per_fixed * len(fixed_categories)) #How much coco samples need to create a batch, coco is used as distractors in order to simulate batch as negative
@@ -45,7 +62,14 @@ class NonRepeatingBalancedSampler(Sampler):
     
     def _take_available_samples(self, category, num_samples):
         """
-            This function return the number of samples of that category for constructing a batch
+            Get available samples for a category without replacement.
+            
+            Args:
+                category: Target category ID
+                num_samples: Required samples
+                
+            Returns:
+                list: Indices of available samples
         """
         taken = []
         remaining = num_samples #Num_samples is the number of samples needed for that batch of a specific category
@@ -62,7 +86,13 @@ class NonRepeatingBalancedSampler(Sampler):
 
     def _sample_from_coco(self, num_samples):
         """
-            Extract from COCO dataset a number of samples (num_samples) needed to complete the dataset
+            Sample COCO images as distractors.
+            
+            Args:
+                num_samples: Required COCO samples
+                
+            Returns:
+                list: Random COCO sample indices
         """
         coco_indices = []
         remaining = 0
@@ -77,7 +107,6 @@ class NonRepeatingBalancedSampler(Sampler):
         for idx in coco_indices:
             if idx not in self.used_indices:
                 remaining += 1
-        #print("COCO REMAINING: ", remaining)
         
         #Create list selected, that contains the indices of samples COCO needed to complete the batch
         for idx in coco_indices:
@@ -86,12 +115,14 @@ class NonRepeatingBalancedSampler(Sampler):
                 self.used_indices.add(idx)
                 if len(selected) >= num_samples:
                     break
-        #print(len(selected))
         return selected
 
     def __iter__(self):
         """
-            this method create all batches, the batches are created untill the category turtle is not empty
+            Generate balanced batches until fixed categories are exhausted.
+            
+            Yields:
+                list: Batch indices with balanced categories
         """
         self.reset()  # Initialize all the dictionaries
         batch_count = 0
@@ -114,7 +145,6 @@ class NonRepeatingBalancedSampler(Sampler):
                     extra_turtle = self._take_available_samples(-2, needed)
                     batch.extend(extra_turtle)
             
-             
             # 2. Add coco samples
             if self.coco_samples > 0:
                 extra_coco = self._sample_from_coco(self.coco_samples)
@@ -132,7 +162,8 @@ class NonRepeatingBalancedSampler(Sampler):
             batch_count += 1
 
     def __len__(self):
-        # A sort of estimation of the number of batches
+        """Estimate total batches per epoch."""
+
         total_samples = sum(len(idxs) for idxs in self.category_indices.values())
         batch_size = (len(self.fixed_categories) * self.samples_per_fixed) + self.coco_samples
         return total_samples // batch_size
