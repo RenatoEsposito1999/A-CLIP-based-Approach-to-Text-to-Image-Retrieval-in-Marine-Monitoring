@@ -1,17 +1,18 @@
 import torch
 import torch.nn as nn
-from transformers import CLIPModel
-from peft import get_peft_model, LoraConfig
+from transformers import CLIPModel, BitsAndBytesConfig
+from peft import get_peft_model, LoraConfig, prepare_model_for_kbit_training
 
 
 class CLIP_model(nn.Module):
     def __init__(self, model_name:str):
         super().__init__()
-        self.clip_model = CLIPModel.from_pretrained(model_name, torch_dtype=torch.float16)
+        self.clip_model = CLIPModel.from_pretrained(model_name, device_map="auto")
         '''for param in clip_model.vision_model.parameters():
                 param.requires_grad = True
         for param in clip_model.text_model.parameters():
             param.requires_grad = True'''
+        #self.clip_model = prepare_model_for_kbit_training(self.clip_model)
         self.clip_model = self.apply_lora_to_clip()
         self.clip_model.logit_scale.requires_grad = True
         self.clip_model.print_trainable_parameters()
