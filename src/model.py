@@ -5,9 +5,9 @@ from peft import get_peft_model, LoraConfig
 
 
 class CLIP_model(nn.Module):
-    def __init__(self):
+    def __init__(self, model_name:str):
         super().__init__()
-        self.clip_model = CLIPModel.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
+        self.clip_model = CLIPModel.from_pretrained(model_name, torch_dtype=torch.float16)
         '''for param in clip_model.vision_model.parameters():
                 param.requires_grad = True
         for param in clip_model.text_model.parameters():
