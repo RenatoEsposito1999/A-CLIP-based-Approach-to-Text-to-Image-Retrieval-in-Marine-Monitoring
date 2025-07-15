@@ -48,12 +48,12 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
         print(f"Gradient Norm: {total_grad_norm}")'''
         
         
-        '''state = {
+        state = {
             'epoch': epoch+1,
             'state_dict': model.state_dict(),
             'train_loss': total_loss/len(dataloader)
             }
-        torch.save(state, f"./checkpoint_train.pth")'''
+        torch.save(state, f"./checkpoint_train.pth")
         validation(dataloader=val_dataloader, model=model, loss_fn=loss_fn,writer=writer, train_epoch=epoch, device=device)
 
 def validation(dataloader, model,loss_fn, writer, train_epoch, device):
@@ -83,20 +83,20 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
     writer.add_scalar("Contrastive loss Validation", contrastiveloss / len(dataloader), train_epoch+1)
 
     
-    '''if (total_loss/len(dataloader)) < best_val_loss:
+    if (total_loss/len(dataloader)) < best_val_loss:
         best_val_loss = total_loss/len(dataloader)
         state = {
             'epoch': train_epoch+1,
             'state_dict': model.state_dict(),
             'best_val_loss': best_val_loss
             }
-        torch.save(state, f"./best_val_loss.pth")'''
+        torch.save(state, f"./best_val_loss.pth")
     all_img_embs = torch.cat(all_img_embs, dim=0)
     all_text_embs = torch.cat(all_text_embs, dim=0)
     all_cats = torch.cat(all_cats,dim=0)
     results = compute_metrics(writer=writer,image_embeddings=all_img_embs,epoch=train_epoch, text_embeddings=all_text_embs, categories=all_cats)
     
-    '''if (results["exact_focus_R@5"] > best_recall_5_focuss):
+    if (results["exact_focus_R@5"] > best_recall_5_focuss):
         best_recall_5_focuss = results["exact_focus_R@5"]
         state = {
             'epoch': train_epoch+1,
@@ -114,7 +114,7 @@ def validation(dataloader, model,loss_fn, writer, train_epoch, device):
             'val_loss': total_loss/len(dataloader),
             'best_recall_5': best_recall_5_all
             }
-        torch.save(state, f"./best_recall@5_all.pth")'''
+        torch.save(state, f"./best_recall@5_all.pth")
     
     print(f"VALIDATION = Epoch {train_epoch+1}, Loss: {total_loss/len(dataloader):.4f}, RECALL@5_turtle: {results['exact_focus_R@5']}, RECALL@5_all: {results['cat_all_R@5']}")
     
@@ -165,8 +165,6 @@ def compute_metrics(writer, text_embeddings, image_embeddings, epoch,k_values=[1
     
     return results
 
-
-    return results
 
     '''
     # 2. Calcolo FOCUS (solo categorie specificate)

@@ -9,9 +9,11 @@ import random
 import pandas as pd
 import json
 from torchvision import transforms as T
+from utils.seed import seed_everything
 
 class dataset(Dataset):
-    def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False):
+    def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False, seed=12345):
+        seed_everything(seed)
         base_path = pathlib.Path(base_path)
         #INITIALIZE VARIABLES FOR PATH TO THE IMAGES
         img_dir_COCO = base_path / "COCO"
@@ -58,11 +60,12 @@ class dataset(Dataset):
             self.captions_turtle[img_dir_turtle / image].append(caption)
             self.captions_turtle[img_dir_turtle / image].append(-2)
         # Other turtle
+        self.captions_other_turtle = defaultdict(list)
         self.df = pd.read_csv(annotations_other_turtle)
         for idx,row in self.df.iterrows():
             image, caption = row
-            self.captions_turtle[img_dir_other_turtle / image].append(caption)
-            self.captions_turtle[img_dir_other_turtle / image].append(-2)
+            self.captions_other_turtle[img_dir_other_turtle / image].append(caption)
+            self.captions_other_turtle[img_dir_other_turtle / image].append(-2)
         # Debris          
         self.captions_debris = defaultdict(list)
         self.df = pd.read_csv(annotations_debris)
@@ -100,6 +103,8 @@ class dataset(Dataset):
         # get all image names
         self.imgs_turtle = list(self.captions_turtle.keys())
         random.shuffle(self.imgs_turtle)
+        self.imgs_other_turtle = list(self.captions_other_turtle.keys())
+        random.shuffle(self.imgs_other_turtle)
         self.imgs_debris = list(self.captions_debris.keys())
         random.shuffle(self.imgs_debris)
         self.imgs_sea = list(self.captions_sea.keys())
@@ -109,10 +114,10 @@ class dataset(Dataset):
         self.imgs_COCO = list(self.captions_COCO.keys())
         random.shuffle(self.imgs_COCO)
         
-
         # split the dataset
         if split == 'train':
             self.imgs_turtle = self.imgs_turtle[ : int(0.8 * len(self.imgs_turtle))]
+            self.imgs_other_turtle = self.imgs_other_turtle[ : int(0.8 * len(self.imgs_other_turtle))]
             self.imgs_debris = self.imgs_debris[: int(0.8 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[: int(0.8 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
@@ -120,12 +125,14 @@ class dataset(Dataset):
             #self.imgs_COCO = self.imgs_COCO[:20000]
         elif split == 'val':
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
+            self.imgs_other_turtle = self.imgs_other_turtle[int(0.8 * len(self.imgs_other_turtle)) : int(0.9 * len(self.imgs_other_turtle))]
             self.imgs_debris = self.imgs_debris[int(0.8 * len(self.imgs_debris)) : int(0.9 * len(self.imgs_debris))]
             self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.5 * len(self.imgs_COCO)) : int(0.65 * len(self.imgs_COCO))] # 16k
         elif split == "test":
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
+            self.imgs_other_turtle = self.imgs_other_turtle[int(0.9 * len(self.imgs_other_turtle)) : ]
             self.imgs_debris = self.imgs_debris[int(0.9 * len(self.imgs_debris)) : ]
             self.imgs_sea = self.imgs_sea[int(0.9 * len(self.imgs_sea)) : ]
             self.imgs_dolphine = self.imgs_dolphine[int(0.9 * len(self.imgs_dolphine)) : ]
@@ -135,16 +142,17 @@ class dataset(Dataset):
         
 
         print("turtle: ", len(self.imgs_turtle))
+        print("other turtle: ", len(self.imgs_other_turtle))
         print("debris: ", len(self.imgs_debris))
         print("sea: ", len(self.imgs_sea))
         print("dolphine: ",len(self.imgs_dolphine))
         print("coco", len(self.imgs_COCO))
         
         #Create a unique list of keys
-        self.imgs = self.imgs_COCO + self.imgs_turtle + self.imgs_debris + self.imgs_dolphine 
+        self.imgs = self.imgs_COCO + self.imgs_turtle + self.imgs_other_turtle + self.imgs_debris + self.imgs_dolphine + self.imgs_sea
         random.shuffle(self.imgs)
         #Create a unique dictionary of captions
-        self.captions = self.captions_COCO | self.captions_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
+        self.captions = self.captions_COCO | self.captions_turtle | self.captions_other_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
   
     def __len__(self):

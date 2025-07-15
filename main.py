@@ -16,11 +16,13 @@ from utils.token import CHAT_ID_RENATO, CHAT_ID_VINCENZO
 from utils.telegram_notification import send_telegram_notification
 from utils.get_optimizer_and_scheduler import get_optimizer_and_scheduler
 from utils.version_log_tensorboard import get_next_version
+import copy
 
 
 
 def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
-    seed_everything(12345)
+    seed = 12345
+    seed_everything(seed)
     
     #PREPARING TENSOBOARD
     log_base_dir = "logs/CLIP"
@@ -34,7 +36,8 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
     model = CLIP_model()
     processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
     collate_fn = Collate_fn(processor=processor)
-
+    
+    
     
 
     if not no_train:
@@ -42,15 +45,16 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
         total_params = sum(p.numel() for p in model.parameters())    
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
+        
 
         print("Train dataset")
         print("-"*15)
-        train_dataset = dataset("./datasets/", split="train")
+        train_dataset = dataset("./datasets/", split="train", seed=seed)
         print("-"*15)
         print("Validation dataset")
-        val_dataset = dataset("./datasets/", split="val")
+        val_dataset = dataset("./datasets/", split="val", seed=seed)
         print("-"*15)
-
+        
         train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
         val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
         train_dataloader = DataLoader(
@@ -76,7 +80,7 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
 
     if test:
         print("Test dataset")
-        test_dataset = dataset("./datasets/", split="test")
+        test_dataset = dataset("./datasets/", split="test", seed=seed)
         print("-"*15)
         test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
         test_dataloader = DataLoader(

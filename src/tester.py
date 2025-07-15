@@ -40,7 +40,7 @@ class Tester:
         all_img_embs = torch.cat(all_img_embs, dim=0)
         all_text_embs = torch.cat(all_text_embs, dim=0)
         all_cats = torch.cat(all_cats,dim=0)
-        test_file = open("./result_test.csv", mode='w', encoding='utf-8', newline='')
+        test_file = open("./result_test.csv", mode='a', encoding='utf-8', newline='')
         fieldnames = ['test_contrastive_loss', 'test_uni_loss', 'test_loss']
         for k in [1,5,10]:
             fieldnames.append(f"cat_all_R@{k}")
