@@ -106,7 +106,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning Rate.")
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
-    parser.add_argument("--n_epochs", type=int, default=50, help="number of epoch")
+    parser.add_argument("--n_epochs", type=int, default=30, help="number of epoch")
     parser.add_argument("--no_train", type=bool, default=False, help="number of epoch")
     parser.add_argument("--test", type=bool, default=True, help="number of epoch")
 
