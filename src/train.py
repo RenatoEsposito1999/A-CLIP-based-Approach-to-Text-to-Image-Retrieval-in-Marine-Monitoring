@@ -18,17 +18,23 @@ def train(model,dataloader,n_epochs, loss_fn,device, optimizer, scheduler, write
         total_loss = 0
         total_uni = 0 
         total_contrastive = 0 
+        print("Prima")
         for batch in dataloader:
+            print("Inizio")
             images, captions, masks, cats = batch
             images = images.to(device)
             captions = captions.to(device)
             masks = masks.to(device)
             cats = cats.to(device)
+            print("cats")
             img_embs,text_embs, logit_scale=model(images,captions,masks)
+            print("dopo model")
             loss, uniloss, contrastiveloss = loss_fn(img_embs, text_embs, cats, logit_scale)
+            print("dopo loss")
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            print("dopo opt.step")
 
             total_loss += loss.item()
             total_uni += uniloss.item()

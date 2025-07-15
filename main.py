@@ -94,7 +94,7 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
                             collate_fn=collate_fn
                         )
         
-        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_tuned_v3")
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_OpenAI_v3")
         tester.test()
 
     writer.close()
