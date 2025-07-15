@@ -20,7 +20,7 @@ import copy
 
 
 
-def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
+def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, model_name: str):
     seed = 12345
     seed_everything(seed)
     
@@ -32,9 +32,12 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
+  
     #DEFINE THE MODEL CLIP
-    model = CLIP_model()
-    processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
+    model = CLIP_model(model_name=model_name)
+    
+    #processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
+    processor = AutoProcessor.from_pretrained(model_name)
     collate_fn = Collate_fn(processor=processor)
     
     
@@ -91,11 +94,10 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool):
                             collate_fn=collate_fn
                         )
         
-        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device)
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_tuned_v3")
         tester.test()
 
     writer.close()
-
 
 
 if __name__ == "__main__":
@@ -106,11 +108,11 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning Rate.")
     parser.add_argument("--device", type=str, default="cuda", help="Device")
     parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
-    parser.add_argument("--n_epochs", type=int, default=30, help="number of epoch")
-    parser.add_argument("--no_train", type=bool, default=False, help="number of epoch")
-    parser.add_argument("--test", type=bool, default=True, help="number of epoch")
-
+    parser.add_argument("--n_epochs", type=int, default=50, help="Number of epoch")
+    parser.add_argument("--no_train", type=bool, default=False, help="True if want to NO TRAIN")
+    parser.add_argument("--test", type=bool, default=True, help="True if want to do TEST")
+    parser.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32", help="Pretrained model name")
 
     args = parser.parse_args()
     
-    main(batch_size=args.bs, lr=args.lr, device= args.device, wd = args.wd, n_epochs=args.n_epochs, no_train=args.no_train, test=args.test)
+    main(batch_size=args.bs, lr=args.lr, device= args.device, wd = args.wd, n_epochs=args.n_epochs, no_train=args.no_train, test=args.test, model_name=args.model_name)
