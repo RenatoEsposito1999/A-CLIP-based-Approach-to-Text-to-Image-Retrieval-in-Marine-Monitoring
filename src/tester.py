@@ -42,7 +42,7 @@ class Tester:
         all_text_embs = torch.cat(all_text_embs, dim=0)
         all_cats = torch.cat(all_cats,dim=0)
         test_file = open("./result_test.csv", mode='a', encoding='utf-8', newline='')
-        fieldnames = ['model_name', 'test_contrastive_loss', 'test_uni_loss', 'test_loss']
+        fieldnames = ['model_name']
         for k in [1,5,10]:
             fieldnames.append(f"cat_all_R@{k}")
         for k in [1,5,10]:
@@ -52,10 +52,7 @@ class Tester:
             writer_test.writeheader()
         results = self.compute_metrics(text_embeddings=all_text_embs, image_embeddings=all_img_embs, categories=all_cats)
         row = {
-            "model_name": self.model_name,
-            "test_contrastive_loss": total_contrastive / len(self.dataloader),
-            "test_uni_loss": total_uni / len(self.dataloader),
-            "test_loss": total_loss / len(self.dataloader),
+            "model_name": self.model_name
         } | results
         
         print(row)

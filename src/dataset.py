@@ -10,6 +10,7 @@ import pandas as pd
 import json
 from torchvision import transforms as T
 from utils.seed import seed_everything
+import csv
 
 class dataset(Dataset):
     def __init__(self, base_path, split='train', turtle_transform=T.Compose([T.Resize((224, 224)),]), txt_transform=None, generic_transform=T.Compose([T.Resize((224, 224)),]), is_val = False, seed=12345):
@@ -140,7 +141,8 @@ class dataset(Dataset):
         else: # use all images
             pass
         
-
+        
+        
         print("turtle: ", len(self.imgs_turtle))
         print("other turtle: ", len(self.imgs_other_turtle))
         print("debris: ", len(self.imgs_debris))
@@ -154,7 +156,6 @@ class dataset(Dataset):
         #Create a unique dictionary of captions
         self.captions = self.captions_COCO | self.captions_turtle | self.captions_other_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
         
-  
     def __len__(self):
         return len(self.imgs)
     

@@ -9,26 +9,20 @@ from src.sampler import NonRepeatingBalancedSampler
 from src.dataset import dataset, Collate_fn
 from src.model import CLIP_model
 from src.loss import compute_loss
-from src.train import train
+from src.trainer import Trainer
 from src.tester import Tester
 from utils.seed import seed_everything
 from utils.token import CHAT_ID_RENATO, CHAT_ID_VINCENZO
 from utils.telegram_notification import send_telegram_notification
 from utils.get_optimizer_and_scheduler import get_optimizer_and_scheduler
 from utils.version_log_tensorboard import get_next_version
-import copy
 
 
-
-def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, model_name: str):
+def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, model_name: str, resume=False, checkpoint=None):
     seed = 12345
     seed_everything(seed)
     
-    #PREPARING TENSOBOARD
-    log_base_dir = "logs/CLIP"
-    next_version = get_next_version(log_base_dir)
-    log_dir = os.path.join(log_base_dir, f"version_{next_version}")
-    writer = SummaryWriter(log_dir=log_dir)   
+       
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
@@ -44,6 +38,11 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
     
 
     if not no_train:
+        #PREPARING TENSOBOARD
+        log_base_dir = "logs/CLIP"
+        next_version = get_next_version(log_base_dir)
+        log_dir = os.path.join(log_base_dir, f"version_{next_version}")
+        writer = SummaryWriter(log_dir=log_dir)
         # print numbers of params of the model     
         total_params = sum(p.numel() for p in model.parameters())    
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -77,8 +76,9 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
         
         print("Start training")
         optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
+        trainer = Trainer(model=model, train_dataloader=train_dataloader, val_dataloader=val_dataloader, loss=compute_loss, optimizer=optimizer, scheduler=scheduler, writer_log=writer, device=device, n_epoch=n_epochs, resume=resume, checkpoint=checkpoint)
         send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
-        train(model=model, dataloader=train_dataloader,n_epochs=n_epochs, loss_fn=compute_loss,device=device,optimizer=optimizer,scheduler=scheduler, writer=writer, val_dataloader=val_dataloader)
+        trainer.fit()
         send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
 
     if test:
@@ -111,8 +111,19 @@ if __name__ == "__main__":
     parser.add_argument("--n_epochs", type=int, default=50, help="Number of epoch")
     parser.add_argument("--no_train", type=bool, default=False, help="True if want to NO TRAIN")
     parser.add_argument("--test", type=bool, default=True, help="True if want to do TEST")
+    #laion/CLIP-ViT-B-32-laion2B-s34B-b79K
+    #openai/clip-vit-base-patch32
     parser.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32", help="Pretrained model name")
-
+    parser.add_argument("--resume", type=bool, default=False, help="Boolean value if want to resume")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Checkpoint path for resuming the training")
     args = parser.parse_args()
-    
-    main(batch_size=args.bs, lr=args.lr, device= args.device, wd = args.wd, n_epochs=args.n_epochs, no_train=args.no_train, test=args.test, model_name=args.model_name)
+    main(batch_size=args.bs, 
+         lr=args.lr, 
+         device= args.device, 
+         wd = args.wd, 
+         n_epochs=args.n_epochs, 
+         no_train=args.no_train, 
+         test=args.test, 
+         model_name=args.model_name, 
+         resume=args.resume, 
+         checkpoint=args.checkpoint_path)
