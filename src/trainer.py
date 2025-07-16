@@ -63,7 +63,7 @@ class Trainer():
         """
         self.model = model.to(device)
         self.train_dataloader = train_dataloader
-        self.val_dataloader = val_dataloader,
+        self.val_dataloader = val_dataloader
         self.loss_fn = loss
         self.device = device
         self.n_epoch = n_epoch
@@ -121,10 +121,7 @@ class Trainer():
             for k in [1,5,10]:
                 self.writer_log.add_scalar(f"cat_all_R@{k}", metric_results[f"cat_all_R@{k}"], epoch+1)
                 self.writer_log.add_scalar(f"exact_turtle_R@{k}", metric_results[f"exact_focus_R@{k}"], epoch + 1)
-            print(f"""VALIDATION = Epoch {epoch+1}, 
-                  Loss: {val_loss:.4f}, 
-                  RECALL@5_turtle: {metric_results['exact_focus_R@5']}, 
-                  RECALL@5_all: {metric_results['cat_all_R@5']}""")
+            print(f"VALIDATION = Epoch {epoch+1}, Loss: {val_loss:.4f}, RECALL@5_turtle: {metric_results['exact_focus_R@5']}, RECALL@5_all: {metric_results['cat_all_R@5']}")
             
             if (val_loss < self.best_val_loss):
                 self.best_val_loss = val_loss
@@ -195,9 +192,9 @@ class Trainer():
             loss.backward()
             self.optimizer.step()
             self.scheduler.step()
-            total_loss += loss
-            total_uni_loss += uniloss
-            total_contrastive_loss += contrastiveloss
+            total_loss += loss.item()
+            total_uni_loss += uniloss.item()
+            total_contrastive_loss += contrastiveloss.item()
         return total_loss/len(self.train_dataloader), total_uni_loss/len(self.train_dataloader), total_contrastive_loss/len(self.train_dataloader)
 
     def validation(self):
