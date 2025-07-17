@@ -121,6 +121,8 @@ class Trainer():
             for k in [1,5,10]:
                 self.writer_log.add_scalar(f"cat_all_R@{k}", metric_results[f"cat_all_R@{k}"], epoch+1)
                 self.writer_log.add_scalar(f"exact_turtle_R@{k}", metric_results[f"exact_focus_R@{k}"], epoch + 1)
+            self.writer_log.add_scalar(f"cat_all_mean_rank", metric_results["cat_all_mean_rank"], epoch + 1)
+            self.writer_log.add_scalar(f"exact_focus_mean_rank", metric_results["exact_focus_mean_rank"], epoch + 1)
             print(f"VALIDATION = Epoch {epoch+1}, Loss: {val_loss:.4f}, RECALL@5_turtle: {metric_results['exact_focus_R@5']}, RECALL@5_all: {metric_results['cat_all_R@5']}")
             
             if (val_loss < self.best_val_loss):
@@ -238,7 +240,7 @@ class Trainer():
         results = self.compute_metrics(text_embeddings=all_text_embs, image_embeddings=all_img_embs, categories=all_cats)
         return total_loss / len(self.val_dataloader), total_uni / len(self.val_dataloader), total_contrastive/len(self.val_dataloader), results
                 
-    def compute_metrics(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
+    '''def compute_metrics(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
         text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
         image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
         sim_matrix = torch.mm(text_embeddings_norm, image_embeddings_norm.t())  #[N_text, N_images]
@@ -266,6 +268,10 @@ class Trainer():
         if len(focus_indices) > 0:
             # Calculate top-k only for focus samples
             sim_focus = sim_matrix[focus_indices]  # [N_focus, N_images]
+
+            
+
+
             top_k = torch.topk(sim_focus, k=max(k_values), dim=1).indices  # [N_focus, max_k]
             for k in k_values:
                 # Check exact matching (i-th query -> i-th image)
@@ -277,4 +283,80 @@ class Trainer():
             for k in k_values:
                 print("\tWARNING: No focus indices in validation found.")
                 results[f"exact_focus_R@{k}"] = 0.0
+        return results'''
+
+
+    def compute_metrics(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
+        text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
+        image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
+    
+        sim_matrix = torch.mm(text_embeddings_norm, image_embeddings_norm.t())  #[N_text, N_images]
+    
+        # Ottieni gli indici top-k (discendenti)
+        top_k_indices = torch.topk(sim_matrix, k=max(k_values), dim=1).indices  # [N_text, max(k_values)]
+
+        results = {}
+        n_total = len(text_embeddings)
+    
+        # 1. Calcolo GLOBALE (tutto il dataset)
+        # Calculate sorted indices for all samples (for mean rank)
+        sorted_indices_all = torch.argsort(sim_matrix, dim=1, descending=True)  # [N_text, N_images]
+        # Calculate mean rank for category matching
+        category_ranks = []
+
+
+        for i in range(n_total):
+            query_cat = categories[i]
+            # Find the first occurrence of the correct category in sorted results
+            ranked_cats = categories[sorted_indices_all[i]]  # categories in order of similarity
+            rank = (ranked_cats == query_cat).nonzero()[0].item() + 1  # +1 because rank starts at 1
+            category_ranks.append(rank)
+        results["cat_all_mean_rank"] = sum(category_ranks) / n_total
+
+
+        for k in k_values:
+            # Ottieni le categorie retrieve per ogni query
+            retrieved_cats = categories[top_k_indices[:, :k]]  # [N_text, k]
+            query_cats = categories.unsqueeze(1)  # [N_text, 1]
+        
+            # Controlla se la categoria query è tra quelle retrieve
+            correct = (retrieved_cats == query_cats).any(dim=1).sum().item()
+            results[f"cat_all_R@{k}"] = correct / n_total
+            #writer.add_scalar(f"cat_all_R@{k}", results[f"cat_all_R@{k}"], epoch+1)
+
+        # 2. Calcolo matching esatto solo turtle. 
+        focus_mask = torch.isin(categories, torch.tensor(self.focus_ids, device=categories.device))
+        focus_indices = torch.where(focus_mask)[0]  # Indici dei sample con categoria in focus_ids
+        if len(focus_indices) > 0:
+            # Calcola top-k solo per i sample focus
+            sim_focus = sim_matrix[focus_indices]  # [N_focus, N_images]
+
+
+            # Calculate mean rank for exact matching
+            sorted_indices = torch.argsort(sim_focus, dim=1, descending=True)  # [N_focus, N_images]
+            
+            ranks = []
+            for i, idx in enumerate(focus_indices):
+                rank = (sorted_indices[i] == idx).nonzero().item() + 1  # +1 because rank starts at 1
+                ranks.append(rank)
+            mean_rank = sum(ranks) / len(ranks)
+            results["exact_focus_mean_rank"] = mean_rank
+
+
+
+            top_k = torch.topk(sim_focus, k=max(k_values), dim=1).indices  # [N_focus, max_k]
+            for k in k_values:
+                # Verifica matching esatto (i-esima query -> i-esima immagine)
+                correct = (top_k[:, :k] == focus_indices.unsqueeze(1)).any(dim=1).sum().item()
+                recall = correct / len(focus_indices)
+            
+                results[f"exact_focus_R@{k}"] = recall
+                #writer.add_scalar(f"exact_turtle_R@{k}", recall, epoch + 1)
+        else:
+            # Se non ci sono sample focus, imposta recall a 0
+            for k in k_values:
+                print("\tWARNING: No focus indices in validation found.")
+                results[f"exact_focus_R@{k}"] = 0.0
+                #writer.add_scalar(f"exact_focus_R@{k}", 0.0, epoch + 1)
+    
         return results

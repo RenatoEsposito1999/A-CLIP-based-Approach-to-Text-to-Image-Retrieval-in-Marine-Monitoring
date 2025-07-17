@@ -98,7 +98,7 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
                             collate_fn=collate_fn
                         )
         
-        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_Laion_100_epoch")
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_OpenAI_tuned")
         tester.test()
 
     
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("--test", type=bool, default=True, help="True if want to do TEST")
     #laion/CLIP-ViT-B-32-laion2B-s34B-b79K
     #openai/clip-vit-base-patch32
-    parser.add_argument("--model_name", type=str, default="laion/CLIP-ViT-B-32-laion2B-s34B-b79K", help="Pretrained model name")
+    parser.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32", help="Pretrained model name")
     parser.add_argument("--resume", type=bool, default=False, help="Boolean value if want to resume")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Checkpoint path for resuming the training")
     args = parser.parse_args()

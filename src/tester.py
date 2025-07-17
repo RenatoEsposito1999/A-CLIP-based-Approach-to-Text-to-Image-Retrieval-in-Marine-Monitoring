@@ -13,8 +13,9 @@ class Tester:
         self.dataloader = dataloader
         self.loss_fn = loss
         self.model_name = model_name
-        state = torch.load("best_recall@5_focus_Laion.pth")
-        model.load_state_dict(state["state_dict"])
+        if not "base" in self.model_name:
+            state = torch.load("best_recall@5_focus_OpenAI.pth")
+            model.load_state_dict(state["state_dict"])
         self.model = model.to(device)
         self.device = device
     def test(self):
@@ -37,8 +38,10 @@ class Tester:
         fieldnames = ['model_name']
         for k in [1,5,10]:
             fieldnames.append(f"cat_all_R@{k}")
+        fieldnames.append("cat_all_mean_rank")
         for k in [1,5,10]:
             fieldnames.append(f"exact_focus_R@{k}")
+        fieldnames.append("exact_focus_mean_rank")
         if not os.path.isfile("./result_test_v2.csv"):
             test_file = open("./result_test_v2.csv", mode='a', encoding='utf-8', newline='')
             writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
@@ -71,6 +74,21 @@ class Tester:
         n_total = len(text_embeddings)
     
         # 1. Calcolo GLOBALE (tutto il dataset)
+        # Calculate sorted indices for all samples (for mean rank)
+        sorted_indices_all = torch.argsort(sim_matrix, dim=1, descending=True)  # [N_text, N_images]
+        # Calculate mean rank for category matching
+        category_ranks = []
+
+
+        for i in range(n_total):
+            query_cat = categories[i]
+            # Find the first occurrence of the correct category in sorted results
+            ranked_cats = categories[sorted_indices_all[i]]  # categories in order of similarity
+            rank = (ranked_cats == query_cat).nonzero()[0].item() + 1  # +1 because rank starts at 1
+            category_ranks.append(rank)
+        results["cat_all_mean_rank"] = sum(category_ranks) / n_total
+
+
         for k in k_values:
             # Ottieni le categorie retrieve per ogni query
             retrieved_cats = categories[top_k_indices[:, :k]]  # [N_text, k]
@@ -87,6 +105,20 @@ class Tester:
         if len(focus_indices) > 0:
             # Calcola top-k solo per i sample focus
             sim_focus = sim_matrix[focus_indices]  # [N_focus, N_images]
+
+
+            # Calculate mean rank for exact matching
+            sorted_indices = torch.argsort(sim_focus, dim=1, descending=True)  # [N_focus, N_images]
+            
+            ranks = []
+            for i, idx in enumerate(focus_indices):
+                rank = (sorted_indices[i] == idx).nonzero().item() + 1  # +1 because rank starts at 1
+                ranks.append(rank)
+            mean_rank = sum(ranks) / len(ranks)
+            results["exact_focus_mean_rank"] = mean_rank
+
+
+
             top_k = torch.topk(sim_focus, k=max(k_values), dim=1).indices  # [N_focus, max_k]
             for k in k_values:
                 # Verifica matching esatto (i-esima query -> i-esima immagine)

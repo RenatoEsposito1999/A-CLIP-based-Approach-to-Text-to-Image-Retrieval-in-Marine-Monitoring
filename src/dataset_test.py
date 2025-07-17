@@ -38,21 +38,19 @@ class dataset_test(Dataset):
         
         self.captions = defaultdict(list)
         # Turtle
+        count_turtle = 0
         self.df = pd.read_csv(annotations_test)
         for idx,row in self.df.iterrows():
             image,caption = row
             self.captions[image].append(caption)
             if "Turtle" in image:
                 self.captions[image].append(-2)
+                count_turtle+=1
             else:
                 self.captions[image].append(unique_category)
                 unique_category+=1
-        
+        print("Number of turtles: ", count_turtle)
         self.imgs = list(self.captions.keys())
-        for img in self.imgs:
-            if not os.path.isfile(img):
-                print(img)
-        
         
         
     def __len__(self):
