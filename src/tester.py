@@ -13,16 +13,13 @@ class Tester:
         self.dataloader = dataloader
         self.loss_fn = loss
         self.model_name = model_name
-        state = torch.load("best_recall@5_focus.pth")
+        state = torch.load("best_recall@5_focus_Laion.pth")
         model.load_state_dict(state["state_dict"])
         self.model = model.to(device)
         self.device = device
     def test(self):
         self.model.eval()
         all_img_embs, all_text_embs, all_cats = [], [],[]
-        total_loss = 0
-        total_uni = 0 
-        total_contrastive = 0
         with torch.no_grad():
             for batch in self.dataloader:
                 images, captions, masks, cats = batch
@@ -34,22 +31,23 @@ class Tester:
                 all_img_embs.append(img_embs)
                 all_text_embs.append(text_embs)
                 all_cats.append(cats)
-                loss, uniloss, contrastiveloss = self.loss_fn(text_embs,img_embs,cats, logit_scale)
-                total_loss += loss.item()
-                total_uni += uniloss.item()
-                total_contrastive += contrastiveloss.item()
         all_img_embs = torch.cat(all_img_embs, dim=0)
         all_text_embs = torch.cat(all_text_embs, dim=0)
         all_cats = torch.cat(all_cats,dim=0)
-        test_file = open("./result_test.csv", mode='a', encoding='utf-8', newline='')
         fieldnames = ['model_name']
         for k in [1,5,10]:
             fieldnames.append(f"cat_all_R@{k}")
         for k in [1,5,10]:
             fieldnames.append(f"exact_focus_R@{k}")
-        writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-        if not os.path.isfile("./result_test.csv"):
+        if not os.path.isfile("./result_test_v2.csv"):
+            test_file = open("./result_test_v2.csv", mode='a', encoding='utf-8', newline='')
+            writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+
             writer_test.writeheader()
+        else: 
+            test_file = open("./result_test_v2.csv", mode='a', encoding='utf-8', newline='')
+            writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+
         results = self.compute_metrics(text_embeddings=all_text_embs, image_embeddings=all_img_embs, categories=all_cats)
         row = {
             "model_name": self.model_name

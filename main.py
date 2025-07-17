@@ -7,6 +7,7 @@ from torchvision import transforms as T
 from transformers import AutoProcessor
 from src.sampler import NonRepeatingBalancedSampler
 from src.dataset import dataset, Collate_fn
+from src.dataset_test import dataset_test
 from src.model import CLIP_model
 from src.loss import compute_loss
 from src.trainer import Trainer
@@ -38,11 +39,7 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
     
 
     if not no_train:
-        #PREPARING TENSOBOARD
-        log_base_dir = "logs/CLIP"
-        next_version = get_next_version(log_base_dir)
-        log_dir = os.path.join(log_base_dir, f"version_{next_version}")
-        writer = SummaryWriter(log_dir=log_dir)
+       
         # print numbers of params of the model     
         total_params = sum(p.numel() for p in model.parameters())    
         trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -73,31 +70,38 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
                             pin_memory=True,
                             collate_fn=collate_fn
                         )
-        
+        #PREPARING TENSOBOARD
+        log_base_dir = "logs/CLIP"
+        next_version = get_next_version(log_base_dir)
+        log_dir = os.path.join(log_base_dir, f"version_{next_version}")
+        writer = SummaryWriter(log_dir=log_dir)
         print("Start training")
         optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
         trainer = Trainer(model=model, train_dataloader=train_dataloader, val_dataloader=val_dataloader, loss=compute_loss, optimizer=optimizer, scheduler=scheduler, writer_log=writer, device=device, n_epoch=n_epochs, resume=resume, checkpoint=checkpoint)
         send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
         trainer.fit()
         send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
-
+        writer.close()
     if test:
         print("Test dataset")
         test_dataset = dataset("./datasets/", split="test", seed=seed)
+        #test_dataset = dataset_test("./datasets/", seed=seed)
         print("-"*15)
-        test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
+        #test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
+        
         test_dataloader = DataLoader(
                             test_dataset, 
-                            batch_sampler = test_sampler,
+                            batch_size=batch_size,
+                            shuffle=True,
                             num_workers=4, 
                             pin_memory=True,
                             collate_fn=collate_fn
                         )
         
-        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_OpenAI_v3")
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_Laion_100_epoch")
         tester.test()
 
-    writer.close()
+    
 
 
 if __name__ == "__main__":
@@ -113,7 +117,7 @@ if __name__ == "__main__":
     parser.add_argument("--test", type=bool, default=True, help="True if want to do TEST")
     #laion/CLIP-ViT-B-32-laion2B-s34B-b79K
     #openai/clip-vit-base-patch32
-    parser.add_argument("--model_name", type=str, default="openai/clip-vit-base-patch32", help="Pretrained model name")
+    parser.add_argument("--model_name", type=str, default="laion/CLIP-ViT-B-32-laion2B-s34B-b79K", help="Pretrained model name")
     parser.add_argument("--resume", type=bool, default=False, help="Boolean value if want to resume")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Checkpoint path for resuming the training")
     args = parser.parse_args()

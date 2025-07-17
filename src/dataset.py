@@ -124,6 +124,7 @@ class dataset(Dataset):
             self.imgs_dolphine = self.imgs_dolphine[: int(0.8 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[ : int(0.5 * len(self.imgs_COCO))] # 20k
             #self.imgs_COCO = self.imgs_COCO[:20000]
+           
         elif split == 'val':
             self.imgs_turtle = self.imgs_turtle[int(0.8 * len(self.imgs_turtle)) : int(0.9 * len(self.imgs_turtle))]
             self.imgs_other_turtle = self.imgs_other_turtle[int(0.8 * len(self.imgs_other_turtle)) : int(0.9 * len(self.imgs_other_turtle))]
@@ -131,6 +132,7 @@ class dataset(Dataset):
             self.imgs_sea = self.imgs_sea[int(0.8 * len(self.imgs_sea)) : int(0.9 * len(self.imgs_sea))]
             self.imgs_dolphine = self.imgs_dolphine[int(0.8 * len(self.imgs_dolphine)) : int(0.9 * len(self.imgs_dolphine))]
             self.imgs_COCO = self.imgs_COCO[int(0.5 * len(self.imgs_COCO)) : int(0.65 * len(self.imgs_COCO))] # 16k
+            
         elif split == "test":
             self.imgs_turtle = self.imgs_turtle[int(0.9 * len(self.imgs_turtle)) : ]
             self.imgs_other_turtle = self.imgs_other_turtle[int(0.9 * len(self.imgs_other_turtle)) : ]
@@ -155,6 +157,8 @@ class dataset(Dataset):
         random.shuffle(self.imgs)
         #Create a unique dictionary of captions
         self.captions = self.captions_COCO | self.captions_turtle | self.captions_other_turtle | self.captions_debris | self.captions_sea | self.captions_dolphine
+        
+        
         
     def __len__(self):
         return len(self.imgs)
