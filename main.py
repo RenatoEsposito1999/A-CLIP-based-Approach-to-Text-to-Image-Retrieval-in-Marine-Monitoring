@@ -98,7 +98,7 @@ def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, mod
                             collate_fn=collate_fn
                         )
         
-        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_LION_tuned")
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_LION_base")
         tester.test()
 
     
