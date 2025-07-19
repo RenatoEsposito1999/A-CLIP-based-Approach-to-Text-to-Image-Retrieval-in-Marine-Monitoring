@@ -1,19 +1,18 @@
 import sys
-sys.path.append("../src")
+sys.path.append("..")
 import argparse
 from transformers import AutoProcessor
 from PIL import Image
 import torch
 import numpy as np
-from model import CLIP_model
+from src.model import CLIP_model
 import os
 
 def predict(model, processor, list_images_path, device):
-    # Query testuale
-    query = "Aerial view of turtle in the ocean"
-    images = []
+    #Query text
+    query = "Aerial view of three turtles in the ocean"
+    images = [] #List of all images
     for img_path in list_images_path:
-    # Lista immagini
         images.append(Image.open(img_path))
     
     inputs = processor(text=[query], images=images, return_tensors="pt", padding=True)
@@ -26,14 +25,14 @@ def predict(model, processor, list_images_path, device):
             attention_masks=attention_masks,
             images=images
         )
-    # Similarità coseno
+    #Apply similarity
     similarities = (text_embeds @ image_embeds.T).squeeze(0)  # shape: (num_images,)
 
-    # Ordina le immagini per similarità
+    #Sort images by similarities
     sorted_indices = similarities.argsort(descending=True)
-    print("Classifica immagini:")
+    print("Classification of images")
     for idx in sorted_indices:
-        print(f"Immagine {idx} - Similarità: {similarities[idx].item():.4f}, PATH = {list_images_path[idx]}")
+        print(f"Image {idx} - Sim score: {similarities[idx].item():.4f}, PATH = {list_images_path[idx]}")
 
 
 def get_model_processor(model_name, device):
@@ -66,7 +65,6 @@ def main(device, model_name, path_images):
     model, processor = get_model_processor(model_name=model_name, device=device)
     images_paths = get_list_images(path_images=path_images)
     predict(model=model, processor=processor, list_images_path=images_paths, device=device)
-    
     
 
 if __name__ == "__main__":
