@@ -1,98 +1,133 @@
-import torch
-from torch.utils.data import DataLoader
-import torchvision.transforms as T
-from transformers import AutoTokenizer
-from dataset import RetrievalDataset, collate_fn
-from model import RetrievalModel
-from loss import contrastive_loss
-from opts import parse_opts
-from train import Train
 import os
-import shutil
+import torch
+import argparse
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms as T
+from transformers import AutoProcessor
+from src.sampler import NonRepeatingBalancedSampler
+from src.dataset import dataset, Collate_fn
+from src.dataset_test import dataset_test
+from src.model import CLIP_model
+from src.loss import compute_loss
+from src.trainer import Trainer
+from src.tester import Tester
+from utils.seed import seed_everything
+from utils.token import CHAT_ID_RENATO, CHAT_ID_VINCENZO
+from utils.telegram_notification import send_telegram_notification
+from utils.get_optimizer_and_scheduler import get_optimizer_and_scheduler
+from utils.version_log_tensorboard import get_next_version
 
-def print_trainable_parameters(model):    
-    total_params = sum(p.numel() for p in model.parameters())    
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
-    #return trainable_params, total_params
+
+def main(batch_size, lr, device, wd, n_epochs, no_train : bool, test : bool, model_name: str, resume=False, checkpoint=None):
+    seed = 12345
+    seed_everything(seed)
+    
+       
+    if device != 'cpu':
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    
+  
+    #DEFINE THE MODEL CLIP
+    model = CLIP_model(model_name=model_name)
+    
+    #processor = AutoProcessor.from_pretrained("laion/CLIP-ViT-B-32-laion2B-s34B-b79K")
+    processor = AutoProcessor.from_pretrained(model_name)
+    collate_fn = Collate_fn(processor=processor)
+    
+    
+    
+
+    if not no_train:
+       
+        # print numbers of params of the model     
+        total_params = sum(p.numel() for p in model.parameters())    
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f"Trainable parameters: {trainable_params:,}\nTotal parameters: {total_params:,}")
+        
+
+        print("Train dataset")
+        print("-"*15)
+        train_dataset = dataset("./datasets/", split="train", seed=seed)
+        print("-"*15)
+        print("Validation dataset")
+        val_dataset = dataset("./datasets/", split="val", seed=seed)
+        print("-"*15)
+        
+        train_sampler = NonRepeatingBalancedSampler(dataset=train_dataset, batch_size=batch_size, fixed_categories=[-2])
+        val_sampler = NonRepeatingBalancedSampler(dataset=val_dataset, batch_size=batch_size, fixed_categories=[-2])
+        train_dataloader = DataLoader(
+                            train_dataset, 
+                            batch_sampler = train_sampler, 
+                            num_workers=4, 
+                            pin_memory=True, 
+                            collate_fn=collate_fn 
+                        )
+        val_dataloader = DataLoader(
+                            val_dataset,
+                            batch_sampler = val_sampler,
+                            num_workers=4, 
+                            pin_memory=True,
+                            collate_fn=collate_fn
+                        )
+        #PREPARING TENSOBOARD
+        log_base_dir = "logs/CLIP"
+        next_version = get_next_version(log_base_dir)
+        log_dir = os.path.join(log_base_dir, f"version_{next_version}")
+        writer = SummaryWriter(log_dir=log_dir)
+        print("Start training")
+        optimizer, scheduler = get_optimizer_and_scheduler(model, lr=lr,weight_decay=wd, tot_num_epochs=n_epochs, steps_per_epoch=len(train_dataloader))
+        trainer = Trainer(model=model, train_dataloader=train_dataloader, val_dataloader=val_dataloader, loss=compute_loss, optimizer=optimizer, scheduler=scheduler, writer_log=writer, device=device, n_epoch=n_epochs, resume=resume, checkpoint=checkpoint)
+        send_telegram_notification(message="Inizio il Training!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+        trainer.fit()
+        send_telegram_notification(message="Training completato!", CHAT_ID=[CHAT_ID_RENATO,CHAT_ID_VINCENZO])
+        writer.close()
+    if test:
+        print("Test dataset")
+        test_dataset = dataset("./datasets/", split="test", seed=seed)
+        #test_dataset = dataset_test("./datasets/", seed=seed)
+        print("-"*15)
+        #test_sampler = NonRepeatingBalancedSampler(dataset=test_dataset, batch_size=batch_size, fixed_categories=[-2])
+        
+        test_dataloader = DataLoader(
+                            test_dataset, 
+                            batch_size=batch_size,
+                            shuffle=True,
+                            num_workers=4, 
+                            pin_memory=True,
+                            collate_fn=collate_fn
+                        )
+        
+        tester = Tester(model=model, dataloader=test_dataloader, loss=compute_loss, device=device, model_name="CLIP_LION_base")
+        tester.test()
+
+    
+
 
 if __name__ == "__main__":
-    opts = parse_opts()
-
-    # --- Checkpoint directory check ---
-    if not os.path.exists(opts.resume_path):
-        os.makedirs(opts.resume_path)
-
-    if not os.path.exists(opts.metrics_path):
-        os.makedirs(opts.metrics_path)
-    elif os.path.exists(opts.metrics_path) and not opts.resume: # if the path exists and resume is false then the path refers to old metre, so I delete the files inside
-        # Deletes ALL contents of the directory (files and subdirectories)
-        shutil.rmtree(opts.metrics_path)
-        # Recreate the empty directory
-        os.makedirs(opts.metrics_path)
-
-
-    # --- Tokenizer ---
-    #clip_tokenizer = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch16")
-    tokenizer = AutoTokenizer.from_pretrained(opts.text_encoder)
+    parser = argparse.ArgumentParser(description="Train parameters")
     
-    # --- Transforms ---
-    # N.B Both transforms are equal, but in future we could apply arg. 
-    train_coco_transform = T.Compose([
-    T.Resize((224, 224)),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
-])
-    train_turtle_transform = T.Compose([
-    T.RandomResizedCrop(224, scale=(0.8, 1.0), ratio=(0.9, 1.1)),
-    T.RandomHorizontalFlip(p=0.5),
-    T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1, hue=0.05),
-    T.RandomRotation(degrees=10),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
-])
-    val_image_transform = T.Compose([
-    T.Resize((224, 224)),
-    T.CenterCrop(224),
-    T.ToTensor(),
-    T.Normalize(mean=(0.48145466, 0.4578275, 0.40821073),
-                std=(0.26862954, 0.26130258, 0.27577711))
-])
-    
-    train_image_transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-    ])
-    val_image_transform = T.Compose([
-        T.Resize((224, 224)),
-        T.ToTensor(),
-        T.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-    ])
-    
-
-    # Model and optimizer
-    model = RetrievalModel(opts=opts).to(opts.device)
-    print_trainable_parameters(model)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=opts.learning_rate, weight_decay=opts.weight_decay)
-    
-    if not opts.no_train:
-        # --- Dataset and Dataloader ---
-        train_dataset = RetrievalDataset(opts.dataset_path, transform_turtle=train_image_transform, transform_coco = train_coco_transform)
-        val_dataset = RetrievalDataset(opts.validation_path,val_transform=val_image_transform)
-        only_turtle_val_dataset = RetrievalDataset(opts.only_turtle_validation_path,transform_turtle=val_image_transform)
-        train_loader = DataLoader(train_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        val_loader = DataLoader(val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        only_turtle_val_loader=None
-        #only_turtle_val_loader = DataLoader(only_turtle_val_dataset, batch_size=opts.batch_size, shuffle=True, collate_fn=lambda b: collate_fn(b, tokenizer))
-        print("START TRAINING")
-        # --- Model and Optimizer ---
-        
-        trainer = Train(model=model,loss_fn=contrastive_loss,optimizer=optimizer, opts=opts)
-        trainer.train_loop(train_loader=train_loader,val_loader=val_loader,only_turtle_loader=only_turtle_val_loader)
-        
-    elif opts.test:
-        print("TO DO TEST")
-    
+    parser.add_argument("--dev", action="store_true", help="Enable fast dev run (one train and validation iteration).")
+    parser.add_argument("--bs", type=int, default=256, help="Batch size.")
+    parser.add_argument("--lr", type=float, default=3e-4, help="Learning Rate.")
+    parser.add_argument("--device", type=str, default="cuda", help="Device")
+    parser.add_argument("--wd", type=float, default=4e-4, help="Weight decay")
+    parser.add_argument("--n_epochs", type=int, default=50, help="Number of epoch")
+    parser.add_argument("--no_train", type=bool, default=False, help="True if want to NO TRAIN")
+    parser.add_argument("--test", type=bool, default=True, help="True if want to do TEST")
+    #laion/CLIP-ViT-B-32-laion2B-s34B-b79K
+    #openai/clip-vit-base-patch32
+    parser.add_argument("--model_name", type=str, default="laion/CLIP-ViT-B-32-laion2B-s34B-b79K", help="Pretrained model name")
+    parser.add_argument("--resume", type=bool, default=False, help="Boolean value if want to resume")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Checkpoint path for resuming the training")
+    args = parser.parse_args()
+    main(batch_size=args.bs, 
+         lr=args.lr, 
+         device= args.device, 
+         wd = args.wd, 
+         n_epochs=args.n_epochs, 
+         no_train=args.no_train, 
+         test=args.test, 
+         model_name=args.model_name, 
+         resume=args.resume, 
+         checkpoint=args.checkpoint_path)

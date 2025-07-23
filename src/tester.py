@@ -1,0 +1,137 @@
+import torch
+from tqdm import tqdm
+import numpy as np
+from collections import defaultdict
+import json
+import torch.nn.functional as F
+import csv
+import os
+focus_ids = [-2]
+
+class Tester:
+    def __init__(self, model, dataloader, loss, device, model_name):
+        self.dataloader = dataloader
+        self.loss_fn = loss
+        self.model_name = model_name
+        if not "base" in self.model_name:
+            state = torch.load("best_recall@5_focus_OpenAI.pth")
+            model.load_state_dict(state["state_dict"])
+        self.model = model.to(device)
+        self.device = device
+    def test(self):
+        self.model.eval()
+        all_img_embs, all_text_embs, all_cats = [], [],[]
+        with torch.no_grad():
+            for batch in self.dataloader:
+                images, captions, masks, cats = batch
+                images = images.to(self.device)
+                captions = captions.to(self.device)
+                masks = masks.to(self.device)
+                cats = cats.to(self.device)
+                img_embs,text_embs, logit_scale=self.model(images,captions,masks)
+                all_img_embs.append(img_embs)
+                all_text_embs.append(text_embs)
+                all_cats.append(cats)
+        all_img_embs = torch.cat(all_img_embs, dim=0)
+        all_text_embs = torch.cat(all_text_embs, dim=0)
+        all_cats = torch.cat(all_cats,dim=0)
+        fieldnames = ['model_name']
+        for k in [1,5,10]:
+            fieldnames.append(f"cat_all_R@{k}")
+        fieldnames.append("cat_all_mean_rank")
+        for k in [1,5,10]:
+            fieldnames.append(f"exact_focus_R@{k}")
+        fieldnames.append("exact_focus_mean_rank")
+        if not os.path.isfile("./result_test_v2.csv"):
+            test_file = open("./result_test_v2.csv", mode='a', encoding='utf-8', newline='')
+            writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+
+            writer_test.writeheader()
+        else: 
+            test_file = open("./result_test_v2.csv", mode='a', encoding='utf-8', newline='')
+            writer_test = csv.DictWriter(test_file, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
+
+        results = self.compute_metrics(text_embeddings=all_text_embs, image_embeddings=all_img_embs, categories=all_cats)
+        row = {
+            "model_name": self.model_name
+        } | results
+        
+        print(row)
+        writer_test.writerow(row)
+        
+        
+    def compute_metrics(self, text_embeddings, image_embeddings, k_values=[1, 5, 10], categories=None):
+        global focus_ids
+        text_embeddings_norm = text_embeddings / text_embeddings.norm(dim=1, keepdim=True)
+        image_embeddings_norm = image_embeddings / image_embeddings.norm(dim=1, keepdim=True)
+    
+        sim_matrix = torch.mm(text_embeddings_norm, image_embeddings_norm.t())  #[N_text, N_images]
+    
+        # Ottieni gli indici top-k (discendenti)
+        top_k_indices = torch.topk(sim_matrix, k=max(k_values), dim=1).indices  # [N_text, max(k_values)]
+
+        results = {}
+        n_total = len(text_embeddings)
+    
+        # 1. Calcolo GLOBALE (tutto il dataset)
+        # Calculate sorted indices for all samples (for mean rank)
+        sorted_indices_all = torch.argsort(sim_matrix, dim=1, descending=True)  # [N_text, N_images]
+        # Calculate mean rank for category matching
+        category_ranks = []
+
+
+        for i in range(n_total):
+            query_cat = categories[i]
+            # Find the first occurrence of the correct category in sorted results
+            ranked_cats = categories[sorted_indices_all[i]]  # categories in order of similarity
+            rank = (ranked_cats == query_cat).nonzero()[0].item() + 1  # +1 because rank starts at 1
+            category_ranks.append(rank)
+        results["cat_all_mean_rank"] = sum(category_ranks) / n_total
+
+
+        for k in k_values:
+            # Ottieni le categorie retrieve per ogni query
+            retrieved_cats = categories[top_k_indices[:, :k]]  # [N_text, k]
+            query_cats = categories.unsqueeze(1)  # [N_text, 1]
+        
+            # Controlla se la categoria query è tra quelle retrieve
+            correct = (retrieved_cats == query_cats).any(dim=1).sum().item()
+            results[f"cat_all_R@{k}"] = correct / n_total
+            #writer.add_scalar(f"cat_all_R@{k}", results[f"cat_all_R@{k}"], epoch+1)
+
+        # 2. Calcolo matching esatto solo turtle. 
+        focus_mask = torch.isin(categories, torch.tensor(focus_ids, device=categories.device))
+        focus_indices = torch.where(focus_mask)[0]  # Indici dei sample con categoria in focus_ids
+        if len(focus_indices) > 0:
+            # Calcola top-k solo per i sample focus
+            sim_focus = sim_matrix[focus_indices]  # [N_focus, N_images]
+
+
+            # Calculate mean rank for exact matching
+            sorted_indices = torch.argsort(sim_focus, dim=1, descending=True)  # [N_focus, N_images]
+            
+            ranks = []
+            for i, idx in enumerate(focus_indices):
+                rank = (sorted_indices[i] == idx).nonzero().item() + 1  # +1 because rank starts at 1
+                ranks.append(rank)
+            mean_rank = sum(ranks) / len(ranks)
+            results["exact_focus_mean_rank"] = mean_rank
+
+
+
+            top_k = torch.topk(sim_focus, k=max(k_values), dim=1).indices  # [N_focus, max_k]
+            for k in k_values:
+                # Verifica matching esatto (i-esima query -> i-esima immagine)
+                correct = (top_k[:, :k] == focus_indices.unsqueeze(1)).any(dim=1).sum().item()
+                recall = correct / len(focus_indices)
+            
+                results[f"exact_focus_R@{k}"] = recall
+                #writer.add_scalar(f"exact_turtle_R@{k}", recall, epoch + 1)
+        else:
+            # Se non ci sono sample focus, imposta recall a 0
+            for k in k_values:
+                print("\tWARNING: No focus indices in validation found.")
+                results[f"exact_focus_R@{k}"] = 0.0
+                #writer.add_scalar(f"exact_focus_R@{k}", 0.0, epoch + 1)
+    
+        return results
