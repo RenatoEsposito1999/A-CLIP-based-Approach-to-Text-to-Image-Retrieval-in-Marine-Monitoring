@@ -1,16 +1,20 @@
 import sys
 sys.path.append("..")
 import argparse
-from transformers import AutoProcessor
+from transformers import AutoProcessor, pipeline
 from PIL import Image
 import torch
 import numpy as np
 from src.model import CLIP_model
 import os
+import librosa
 
-def predict(model, processor, list_images_path, device):
+def predict(model, processor, list_images_path, device, stt, path_audio):
     #Query text
-    query = "Aerial view of three turtles in the ocean"
+    #query = "Turtle in the water"
+    audio, sr = librosa.load(path_audio, sr=16000)  # Whisper richiede 16kHz
+    # Trascrivi l'audio
+    query = (stt(audio)["text"]).lower()
     images = [] #List of all images
     for img_path in list_images_path:
         images.append(Image.open(img_path))
@@ -49,6 +53,13 @@ def get_model_processor(model_name, device):
     model = model.to(device)
     return model, processor
 
+def get_pipeline_stt():
+    stt_pipeline = pipeline(
+    "automatic-speech-recognition",
+    model="openai/whisper-large-v3"
+    )
+    return stt_pipeline
+
 def get_list_images(path_images):
     image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.gif')
     image_paths = []
@@ -59,12 +70,13 @@ def get_list_images(path_images):
     image_paths = [os.path.abspath(path) for path in image_paths]
     return image_paths
 
-def main(device, model_name, path_images):
+def main(device, model_name, path_images, path_audio):
     if device != 'cpu':
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
     model, processor = get_model_processor(model_name=model_name, device=device)
+    stt_pipeline = get_pipeline_stt()
     images_paths = get_list_images(path_images=path_images)
-    predict(model=model, processor=processor, list_images_path=images_paths, device=device)
+    predict(model=model, processor=processor, list_images_path=images_paths, device=device, stt=stt_pipeline, path_audio=path_audio)
     
 
 if __name__ == "__main__":
@@ -74,7 +86,10 @@ if __name__ == "__main__":
     #openai/clip-vit-base-patch32
     parser.add_argument("--model_name", type=str, default="laion/CLIP-ViT-B-32-laion2B-s34B-b79K", help="Pretrained model name")
     parser.add_argument("--path_images", type=str, default="./list_images", help="Pretrained model name")
+    parser.add_argument("--audio_file", type=str, default="./audio.mp3", help="Path of the audio file")
+
     args = parser.parse_args()
     main(device=args.device,
          model_name=args.model_name,
-         path_images=args.path_images)
+         path_images=args.path_images,
+         path_audio=args.audio_file)
