@@ -1,3 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Ignore everything in data folder except specific subdirectories
+datasets/*
+!datasets/download_flickr30k.sh
+!datasets/readme.txt
+
+gallery/*
+!gallery/readme.txt
+
+# Ignore .pth files in deployment folder
+deployment/*.pth
+
+# Ignore faiss index files in gallery folder
+gallery/*.faiss
+
+# VS Code
+.vscode/
+
+# Cache files
+.cache/
+
+
+#-------NOSTRO--------------
 # === Python ===
 __pycache__
 *.py[cod]
@@ -23,13 +53,13 @@ MANIFEST
 .pytest_cache/
 .mypy_cache/
 .ipynb_checkpoints/
-
+ 
 # === Virtualenv ===
 venv/
 ENV/
 env/
 .venv/
-
+ 
 # === VS Code ===
 .vscode/
 !.vscode/settings.json
@@ -37,7 +67,7 @@ env/
 !.vscode/launch.json
 !.vscode/extensions.json
 *.code-workspace
-
+ 
 # === OS generici ===
 .DS_Store
 .DS_Store?
@@ -46,15 +76,15 @@ env/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+ 
 # === Jupyter Notebook ===
 *.ipynb
-
+ 
 # === Logs e database ===
 *.log
 *.sqlite
 *.db
-
+ 
 # === File di ambiente (env, dotenv) ===
 .env
 .venv
@@ -62,12 +92,27 @@ env/
 venv/
 *.env
 
+COCO
+flickr30k_images
+Train_cropped
+checkpoint*
+datasets
 old_csv
-metrics
-checkpoint
-best_model.pth
-gpu.err
-gpu.out
-gpu.err
-metrics_*
-checkpoint_*
+*.zip
+NEW_DATASET/Train
+NEW_DATASET/Test
+NEW_DATASET/Validation
+TURTLE_OTHER
+*.err
+*.out
+*.pth
+utils/token.py
+Debris/
+Dolphin/
+Sea/
+Turtle/
+Turtle_other/
+__TO_DELETE*
+Miniconda-installer/
+list_images
+datasets.zip
