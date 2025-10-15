@@ -1,4 +1,5 @@
-# A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring 🐢
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+# A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring 🐢 
 This work represents my Master's Degree Thesis in **Applied Computer Science (Machine Learning and Big Data)**, the title of which is:
 
 A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring
