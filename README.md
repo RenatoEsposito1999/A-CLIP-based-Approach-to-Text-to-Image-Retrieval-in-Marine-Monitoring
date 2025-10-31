@@ -4,7 +4,7 @@ This work represents our Master's Degree Thesis in **Applied Computer Science (M
 
 1. A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring
 
-2. Deep-learning based sea-turtles monitoring
+2. Deep learning-based sea-turtles monitoring
 
 ## 📋 Table of Contents
 
