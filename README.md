@@ -1,8 +1,9 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 # A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring 🐢 
-This work represents my Master's Degree Thesis in **Applied Computer Science (Machine Learning and Big Data)**, the title of which is:
+This work represents our Master's Degree Thesis in **Applied Computer Science (Machine Learning and Big Data)**, the titles of each one is:
 
 A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring
+Deep-learning based sea-turtles monitoring
 
 ## 📋 Table of Contents
 
@@ -24,7 +25,7 @@ A CLIP-based Approach to Text-to-Image Retrieval in Marine Monitoring
 
 ## 1. Introduction and Project Goals
 
-This thesis project applies Artificial Intelligence (AI) techniques to support marine biodiversity monitoring, aligning with the **UN 2030 Agenda Sustainable Development Goal (SDG) 14**: "**Life below water**" ("Conserve and sustainably use the oceans, seas and marine resources for sustainable development").
+This project applies Artificial Intelligence (AI) techniques to support marine biodiversity monitoring, aligning with the **UN 2030 Agenda Sustainable Development Goal (SDG) 14**: "**Life below water**" ("Conserve and sustainably use the oceans, seas and marine resources for sustainable development").
 
 The primary goal was the **design and implementation of a specialized Text-to-Image Retrieval system** focusing on the **sea turtle domain**.
 
